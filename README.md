@@ -1,5 +1,3 @@
-Here’s a sample `README.md` content with instructions for setting up and running the project:
-
 ---
 
 # Edu Platform
