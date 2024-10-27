@@ -1,5 +1,7 @@
 from django.contrib import admin
+from django import forms
 from .models import Author, Student, Course, Module, Lesson
+from django_ckeditor_5.widgets import CKEditor5Widget
 
 class ModuleInline(admin.TabularInline):
     model = Module
@@ -37,19 +39,26 @@ class CourseAdmin(admin.ModelAdmin):
     students_count.short_description = 'Subscribed students'
     lesson_count.short_description = 'Number of lessons'
 
+class LessonAdminForm(forms.ModelForm):
+    video_url = forms.URLField(
+        required=False,
+        widget=forms.URLInput(attrs={'placeholder': 'Enter a video link (e.g., YouTube URL)'})
+    )
+    uploaded_video = forms.FileField(
+        required=False,
+        widget=forms.FileInput(attrs={'placeholder': 'Or upload a video file'})
+    )
+    content = forms.CharField(widget=CKEditor5Widget(config_name='default'))
+
+    class Meta:
+        model = Lesson
+        fields = '__all__'
+
+
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
+    form = LessonAdminForm
     list_display = ('name', 'course', 'module', 'short_description')
-
-    def get_form(self, request, obj=None, **kwargs):
-        form = super().get_form(request, obj, **kwargs)
-        form.base_fields['module'].required = True
-
-        if obj and obj.module:
-            form.base_fields['module'].queryset = Module.objects.filter(course=obj.module.course)
-        else:
-            form.base_fields['module'].queryset = Module.objects.none()
-        return form
 
     def get_readonly_fields(self, request, obj=None):
         return ['course'] if obj else []
@@ -71,7 +80,6 @@ class StudentAdmin(admin.ModelAdmin):
     list_display = ['username']
 
     def save_model(self, request, obj, form, change):
-        # Добавляем выбранный курс в список подписанных курсов
         subscribed_course = form.cleaned_data.get('subscribed_courses')
         if subscribed_course:
             obj.subscribed_courses[str(subscribed_course.id)] = {

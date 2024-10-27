@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'whitenoise.runserver_nostatic',
+    'django_ckeditor_5',
 ]
 
 REST_FRAMEWORK = {
@@ -144,7 +145,59 @@ STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/media/'
+
+
+CKEDITOR_STORAGE_BACKEND = 'myapp.custom_storage.UniqueFilenameStorage'
+CKEDITOR_5_UPLOADS = 'course_images/'
+CKEDITOR_5_CONFIGS = {
+    'default': {
+        'language': 'en',
+        'toolbar': [
+            'heading', '|', 'bold', 'italic', 'underline', 'link', 'bulletedList', 'numberedList', 'blockQuote', '|',
+            'insertTable', 'tableColumn', 'tableRow', 'mergeTableCells', '|',
+            'fontFamily', 'fontSize', 'fontColor', 'fontBackgroundColor', '|',
+            'imageUpload', 'removeFormat', 'undo', 'redo'
+        ],
+        'height': 300,
+        'width': '100%',
+        'skin': 'moon-dark',
+
+        'heading': {
+            'options': [
+                { 'model': 'paragraph', 'title': 'Paragraph', 'class': 'ck-heading_paragraph' },
+                { 'model': 'heading1', 'view': 'h1', 'title': 'Heading 1', 'class': 'ck-heading_heading1' },
+                { 'model': 'heading2', 'view': 'h2', 'title': 'Heading 2', 'class': 'ck-heading_heading2' },
+                { 'model': 'heading3', 'view': 'h3', 'title': 'Heading 3', 'class': 'ck-heading_heading3' }
+            ]
+        },
+        'fontFamily': {
+            'options': [
+                'default',
+                'Arial, sans-serif',
+                'Courier New, Courier, monospace',
+                'Georgia, serif',
+                'Lucida Sans Unicode, Lucida Grande, sans-serif',
+                'Tahoma, Geneva, sans-serif',
+                'Times New Roman, Times, serif',
+                'Verdana, Geneva, sans-serif'
+            ],
+        },
+        'fontSize': {
+            'options': [
+                'default',
+                'tiny',
+                'small',
+                'big',
+                'huge'
+            ],
+        }
+    }
+}
+
+
+
+
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

@@ -142,13 +142,13 @@ def course(request, id, title=None):
     author_data = {
         "id": course.author.id,
         "username": course.author.username,
+        "about": course.author.about
     }
 
     response_data = {
         "Overview": course_data,
         "Curriculum": module_serializer.data,
         "Author": author_data,
-        "FAQs": "Soon...",
         "Reviews": "Soon..."
     }
 
@@ -157,27 +157,21 @@ def course(request, id, title=None):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
-def lesson_redirect(request, id, title):
-    return redirect(f'/courses/{id}/{title}/')
+def lesson(request, id, title, lessonid, name=None):
+    course = get_object_or_404(Course, id=id, title=title)
+    lesson = get_object_or_404(Lesson, id=lessonid, course=course)
+    lesson_name_slug = lesson.name.replace(' ', '-').lower()
+    if name is None or name != lesson_name_slug:
+        return redirect(f'/courses/{id}/{title}/lesson/{lessonid}/{lesson_name_slug}/')
 
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def lesson(request, id, title, lessonid):
-    try:
-        course = Course.objects.get(id=id, title=title)
-    except Course.DoesNotExist:
-        return Response({'message': 'Course not found'}, status=status.HTTP_404_NOT_FOUND)
-
-    try:
-        lesson = Lesson.objects.get(id=lessonid, course=course)
-    except Lesson.DoesNotExist:
-        return Response({'message': 'Lesson not found'}, status=status.HTTP_404_NOT_FOUND)
+    video_source = lesson.video_url if lesson.video_url else (lesson.uploaded_video.url if lesson.uploaded_video else None)
 
     response_data = {
         "id": lesson.id,
         "name": lesson.name,
-        "video_url": lesson.video_url,
+        "video_url": video_source,
         "content": lesson.content,
     }
 
     return Response(response_data, status=status.HTTP_200_OK)
+

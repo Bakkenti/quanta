@@ -7,6 +7,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 import re
 from django.utils import timezone
+from django_ckeditor_5.fields import CKEditor5Field
 
 
 class Author(models.Model):
@@ -101,17 +102,35 @@ class Module(models.Model):
         return self.module
 
 
+from django.db import models
+from django.core.exceptions import ValidationError
+from django_ckeditor_5.fields import CKEditor5Field
+import re
+
+from django.db import models
+from django.core.exceptions import ValidationError
+from django_ckeditor_5.fields import CKEditor5Field
+
 class Lesson(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=200)
-    video_url = models.URLField(blank=True, null=True)
+    video_url = models.URLField("Video URL", blank=True, null=True)
+    uploaded_video = models.FileField("Upload Video", upload_to='lesson_videos/', blank=True, null=True)
     short_description = models.CharField(max_length=255)
-    content = models.TextField()
-    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='lessons', null=True, blank=True)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='lessons', null=True, blank=True)
+    content = CKEditor5Field('Content', config_name='default')
+    module = models.ForeignKey('Module', on_delete=models.CASCADE, related_name='lessons', null=True, blank=True)
+    course = models.ForeignKey('Course', on_delete=models.CASCADE, related_name='lessons', null=True, blank=True)
 
     def __str__(self):
         return self.name
+
+    def clean(self):
+        # Ensure that either `video_url` or `uploaded_video` is provided, not both
+        if self.video_url and self.uploaded_video:
+            raise ValidationError("Please provide either a video URL or upload a video, not both.")
+        elif not self.video_url and not self.uploaded_video:
+            raise ValidationError("Please provide a video URL or upload a video.")
+
 
 
 class Comment(models.Model):
