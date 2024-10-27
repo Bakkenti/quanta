@@ -1,6 +1,5 @@
 from django.contrib import admin
 from .models import Author, Student, Course, Module, Lesson
-from .forms import StudentForm
 
 class ModuleInline(admin.TabularInline):
     model = Module
@@ -69,7 +68,6 @@ class AuthorAdmin(admin.ModelAdmin):
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    form = StudentForm
     list_display = ['username']
 
     def save_model(self, request, obj, form, change):
