@@ -38,7 +38,6 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'whitenoise.runserver_nostatic',
-    'django_select2',
 ]
 
 REST_FRAMEWORK = {
