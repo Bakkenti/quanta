@@ -16,14 +16,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'quanta-production.up.railway.app']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'quant.up.railway.app']
 
 INTERNAL_IPS = (
     '127.0.0.1',
     'localhost:8000'
 )
 
-CSRF_TRUSTED_ORIGINS = ['https://quanta-production.up.railway.app']
+CSRF_TRUSTED_ORIGINS = ['quant.up.railway.app']
 
 # Application definition
 
