@@ -23,7 +23,7 @@ INTERNAL_IPS = (
     'localhost:8000'
 )
 
-CSRF_TRUSTED_ORIGINS = ['quant.up.railway.app']
+CSRF_TRUSTED_ORIGINS = ['htttps://quant.up.railway.app']
 
 # Application definition
 
