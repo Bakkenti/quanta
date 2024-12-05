@@ -26,7 +26,8 @@ class Author(models.Model):
 
 class Student(models.Model):
     id = models.AutoField(primary_key=True)
-    username = models.CharField(max_length=100, unique=True)
+    email = models.EmailField(max_length=255, unique=True, default='default@example.com')
+    username = models.CharField(max_length=40, unique=True)
     password = models.CharField(max_length=128)
     subscribed_courses = models.JSONField(default=dict, blank=True)
 
@@ -133,6 +134,12 @@ class Comment(models.Model):
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def save(self, *args, **kwargs):
+        # Ensure that content_type is set correctly
+        if not self.content_type:
+            self.content_type = ContentType.objects.get_for_model(self.content_object)
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.user.username}: {self.text[:20]}"
 
@@ -147,12 +154,3 @@ class Post(models.Model):
     def __str__(self):
         return self.title
 
-
-class ActiveSession(models.Model):
-    user = models.ForeignKey(Student, on_delete=models.CASCADE)
-    access_token = models.CharField(max_length=512, default='')
-    refresh_token = models.CharField(max_length=512, default='')
-    last_used = models.DateTimeField(default=timezone.now)
-
-    def __str__(self):
-        return f"Session for {self.user.username}"

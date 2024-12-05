@@ -11,6 +11,7 @@ urlpatterns = [
     path('courses/<int:id>/<str:title>/lesson/<int:lessonid>/<str:name>/', views.lesson, name='lesson-detail'),
     path('signup/', views.signup, name='registration'),
     path('login/', views.login, name='login'),
+    path('logout/', views.logout, name='logout'),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]

@@ -4,9 +4,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.shortcuts import get_object_or_404, redirect
-from django.contrib.auth.hashers import make_password, check_password
-from .models import Course, Lesson, Student, ActiveSession
-from .serializers import CourseSerializer, LessonSerializer, ModuleSerializer
+from .models import Course, Lesson
+from .serializers import RegistrationSerializer, LoginSerializer, CourseSerializer, LessonSerializer, ModuleSerializer
 from datetime import timedelta
 from django.utils import timezone
 
@@ -14,80 +13,56 @@ from django.utils import timezone
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def signup(request):
-    username = request.data.get('username')
-    password = request.data.get('password')
+    serializer = RegistrationSerializer(data=request.data)
+    if serializer.is_valid():
+        student = serializer.save()
+        refresh = RefreshToken.for_user(student)
 
-    if not username or not password:
-        return Response({"error": "Username and password are required."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({
+            "message": "Registration successful!",
+            "access": str(refresh.access_token),
+            "refresh": str(refresh)
+        }, status=status.HTTP_201_CREATED)
 
-    if Student.objects.filter(username=username).exists():
-        return Response({"error": "Username already exists."}, status=status.HTTP_400_BAD_REQUEST)
-
-    student = Student(username=username)
-    student.set_password(password)
-    student.save()
-
-    refresh = RefreshToken.for_user(student)
-
-    return Response({
-        "message": "Registration successful!",
-        "access": str(refresh.access_token),
-        "refresh": str(refresh)
-    }, status=status.HTTP_201_CREATED)
-
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login(request):
-    username = request.data.get('username')
-    password = request.data.get('password')
+    serializer = LoginSerializer(data=request.data)
+    if serializer.is_valid():
+        user = serializer.validated_data['user']
 
-    if not username or not password:
-        return Response({"error": "Username and password are required."}, status=status.HTTP_400_BAD_REQUEST)
+        # Generate JWT tokens
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
 
-    try:
-        student = Student.objects.get(username=username)
+        # Respond with tokens
+        response = Response({
+            "message": "Login successful!",
+            "access": access_token,
+        }, status=status.HTTP_200_OK)
 
-        if student.check_password(password):
-            active_session = ActiveSession.objects.filter(user=student).first()
+        # Set refresh_token in cookies
+        response.set_cookie(
+            key='refresh_token',
+            value=refresh_token,
+            httponly=True,
+            secure=True,
+            samesite='Strict'
+        )
 
-            if active_session:
-                return Response({
-                    "message": "You are already logged in!",
-                    "access": active_session.access_token,
-                    "refresh": active_session.refresh_token,
-                }, status=status.HTTP_200_OK)
+        return response
 
-            refresh = RefreshToken.for_user(student)
-            access_token = str(refresh.access_token)
-            refresh_token = str(refresh)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-            ActiveSession.objects.create(
-                user=student,
-                access_token=access_token,
-                refresh_token=refresh_token
-            )
 
-            response = Response({
-                "message": "Login successful!",
-                "access": access_token,
-            }, status=status.HTTP_200_OK)
-
-            response.set_cookie(
-                key='refresh_token',
-                value=refresh_token,
-                httponly=True,
-                secure=True,
-                samesite='Strict'
-            )
-
-            return response
-        else:
-            return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
-    except Student.DoesNotExist:
-        return Response({"error": "Student does not exist"}, status=status.HTTP_401_UNAUTHORIZED)
-
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def logout(request):
+    return Response(status=204)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -96,15 +71,9 @@ def token_refresh(request):
     if not refresh_token:
         return Response({"error": "Refresh token not provided"}, status=status.HTTP_401_UNAUTHORIZED)
 
-    active_session = ActiveSession.objects.filter(user=request.user).first()
-    if active_session and timezone.now() - active_session.last_used > timedelta(days=30):
-        return Response({"error": "Session has expired due to inactivity"}, status=status.HTTP_401_UNAUTHORIZED)
-
     try:
         refresh = RefreshToken(refresh_token)
         new_access_token = refresh.access_token
-        active_session.last_used = timezone.now()
-        active_session.save()
         return Response({"access": str(new_access_token)}, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
@@ -177,4 +146,3 @@ def lesson(request, id, title, lessonid, name=None):
     }
 
     return Response(response_data, status=status.HTTP_200_OK)
-
