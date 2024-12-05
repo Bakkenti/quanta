@@ -41,13 +41,13 @@ A Django-based platform for managing and accessing educational courses, lessons,
    Create a `.env` file in the root directory and set the following environment variables:
 
    ```dotenv
-   SECRET_KEY=jpejIA4XIe
-   DEBUG=True
-   DB_NAME=railway
-   DB_USER=postgres
-   DB_PASSWORD=DeFgXmiYAitPpwlUgEApmvawqwhCeuNF
-   DB_HOST=junction.proxy.rlwy.net
-   DB_PORT=14875
+   SECRET_KEY=""
+   DEBUG=True/False
+   DB_NAME=""
+   DB_USER=""
+   DB_PASSWORD=""
+   DB_HOST=""
+   DB_PORT=""
    ```
 
 5. **Database Setup:**
