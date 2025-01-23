@@ -43,5 +43,5 @@ class ModuleAdmin(admin.ModelAdmin):
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
     list_display = ('name', 'module', 'duration', 'video_url')
-    search_fields = ('name', 'module__title')
+    search_fields = ('name', 'module__module')
     list_filter = ('module',)

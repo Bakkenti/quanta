@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Avg
 import re
 from django.utils.text import slugify
+from django.contrib.auth import get_user_model
 
 
 # Validators
@@ -92,21 +93,21 @@ class Student(models.Model):
     def __str__(self):
         return f"Student: {self.user.username}"
 
+User = get_user_model()
 
 # Author Model
 class Author(models.Model):
-    GENDER_CHOICES = [("M", "Male"), ("F", "Female"), ("O", "Other")]
-
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="author")
     avatar = models.ImageField(upload_to="avatars/", null=True, blank=True)
     about = models.TextField(max_length=500, blank=True)
     birthday = models.DateField(null=True, blank=True)
     phone_number = models.CharField(max_length=15, null=True, blank=True)
+    GENDER_CHOICES = [("M", "Male"), ("F", "Female"), ("O", "Other")]
     gender = models.CharField(choices=GENDER_CHOICES, max_length=1, blank=True)
     published_courses = models.ManyToManyField(
         "Course",
         blank=True,
-        related_name="published_by_authors",  # Изменяем related_name
+        related_name="published_by_authors",
     )
 
     def __str__(self):

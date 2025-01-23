@@ -6,10 +6,7 @@ from django.utils.text import slugify
 urlpatterns = [
     path('courses/', views.course_list, name='course-list'),
     path('courses/<int:id>/', views.course, name='course-page'),
-    path('courses/<int:id>/<str:title>/', views.course, name='course-page'),
-    path('courses/<int:id>/<str:title>/lesson/', views.course, name='course-page'),
-    path('courses/<int:id>/<str:title>/lesson/<int:lessonid>/', views.lesson, name='lesson'),
-    path('courses/<int:id>/<str:title>/lesson/<int:lessonid>/<str:name>/', views.lesson, name='lesson-detail'),
+    path('courses/<int:id>/<int:lessonid>/', views.lesson, name='lesson'),
     path('signup/', views.signup, name='registration'),
     path('login/', views.login, name='login'),
     path('logout/', views.logout, name='logout'),

@@ -22,7 +22,6 @@ from .serializers import (
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def signup(request):
-    # Проверяем наличие активного токена
     if 'Authorization' in request.headers:
         return Response({"message": "Вы уже зарегистрированы и авторизованы."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -111,22 +110,11 @@ def course_list(request):
     serializer = CourseSerializer(courses, many=True, context={'request': request})
     return Response(serializer.data)
 
-def custom_slugify(value):
-    # Сохраняем символы '+' перед вызовом slugify
-    value = value.replace('+', 'PLUS')  # Временная замена
-    slugified_value = slugify(value)
-    # Восстанавливаем '+' после slugify
-    return slugified_value.replace('plus', '+')
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def course(request, id, title=None):
     course = get_object_or_404(Course.objects.prefetch_related('modules', 'modules__lessons'), id=id)
-
-    # Проверяем корректность title в URL
-    expected_title = custom_slugify(course.title)
-    if title != expected_title:
-        return redirect(reverse('course-page', kwargs={'id': id, 'title': expected_title}))
-
     course_data = {
         "id": course.id,
         "title": course.title,
@@ -158,42 +146,12 @@ def course(request, id, title=None):
 
     return Response(response_data, status=status.HTTP_200_OK)
 
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
-def lesson_without_id(request, id, title):
-    # Проверяем корректность title в URL
+def lesson(request, id, lessonid=None, name=None):
     course = get_object_or_404(Course, id=id)
-    expected_title = slugify(course.title)
-    if title != expected_title:
-        return redirect(f'/courses/{id}/{expected_title}/lesson/')
-
-    # Перенаправляем обратно на страницу курса с сообщением
-    response_data = {
-        "error": 400,
-        "message": "Введите ID урока после /lesson/."
-    }
-    return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def lesson(request, id, title, lessonid=None, name=None):
-    course = get_object_or_404(Course, id=id)
-    expected_title = custom_slugify(course.title)
-    if title != expected_title:
-        return redirect(f'/courses/{id}/{expected_title}/')
-
-    if lessonid is None:
-        response_data = {
-            "error": 400,
-            "message": "Введите ID урока после /lesson/."
-        }
-        return redirect(f'/courses/{id}/{expected_title}/', JsonResponse(response_data, status=400))
-
     lesson = get_object_or_404(Lesson, id=lessonid, module__course=course)
-    lesson_name_slug = slugify(lesson.name)
-
-    if name != lesson_name_slug:
-        return redirect(f'/courses/{id}/{expected_title}/lesson/{lessonid}/{lesson_name_slug}/')
-
     lesson_data = {
         "id": lesson.id,
         "name": lesson.name,
