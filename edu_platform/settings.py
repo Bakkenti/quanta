@@ -51,12 +51,8 @@ REST_FRAMEWORK = {
     ),
 }
 
+LOGIN_URL = '/login/'
 
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'AUTH_HEADER_TYPES': ('Bearer',),
-}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -71,8 +67,10 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8000",
     "http://localhost:3000",
     "https://jasulan273.github.io",
+    "https://quant.up.railway.app",
 ]
 
 ROOT_URLCONF = 'edu_platform.urls'
