@@ -162,7 +162,6 @@ def lesson(request, id, lessonid=None, name=None):
         "name": lesson.name,
         "description": lesson.short_description,
         "content": lesson.content,
-        "duration": lesson.duration,
         "video_url": lesson.video_url,
         "uploaded_video": lesson.uploaded_video.url if lesson.uploaded_video else None,
     }
