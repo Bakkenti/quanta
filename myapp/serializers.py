@@ -1,6 +1,5 @@
 from rest_framework import serializers
-from .models import Author, Student, Course, Module, Lesson, User
-from django.conf import settings
+from .models import Author, Student, Course, Module, Lesson
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
@@ -8,13 +7,8 @@ class RegistrationSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True)
 
     class Meta:
-        model = User
-        fields = ['email', 'username', 'password', 'confirm_password']
-
-    def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("A user with this email already exists.")
-        return value
+        model = Student
+        fields = ['username', 'email', 'password', 'confirm_password', 'role', 'avatar', 'about', 'birthday', 'phone_number', 'gender']
 
     def validate(self, data):
         if data['password'] != data['confirm_password']:
@@ -25,12 +19,19 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data.pop('confirm_password')
-        user = User.objects.create_user(
-            email=validated_data['email'],
+        student = Student.objects.create(
             username=validated_data['username'],
-            password=validated_data['password'],
+            email=validated_data['email'],
+            role=validated_data.get('role', 'guest'),
+            avatar=validated_data.get('avatar'),
+            about=validated_data.get('about'),
+            birthday=validated_data.get('birthday'),
+            phone_number=validated_data.get('phone_number'),
+            gender=validated_data.get('gender'),
         )
-        return user
+        student.set_password(validated_data['password'])
+        student.save()
+        return student
 
 
 class LoginSerializer(serializers.Serializer):
@@ -48,9 +49,9 @@ class LoginSerializer(serializers.Serializer):
 
         user = None
         if username:
-            user = User.objects.filter(username=username).first()
+            user = Student.objects.filter(username=username).first()
         elif email:
-            user = User.objects.filter(email=email).first()
+            user = Student.objects.filter(email=email).first()
 
         if not user:
             raise serializers.ValidationError({"error": "User not found."})
@@ -62,13 +63,11 @@ class LoginSerializer(serializers.Serializer):
         return data
 
 
-class ProfileSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(source='user.username')
-    email = serializers.EmailField(source='user.email')
 
+class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
-        fields = ['id', 'username', 'email', 'avatar', 'about', 'birthday', 'phone_number', 'gender', 'subscribed_courses']
+        fields = ['id', 'username', 'email', 'role', 'avatar', 'about', 'birthday', 'phone_number', 'gender']
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -81,7 +80,7 @@ class CourseSerializer(serializers.ModelSerializer):
             'id',
             'title',
             'course_image',
-            'author_username',  # Добавляем username автора
+            'author_username',
             'description',
             'duration',
             'level',
@@ -94,25 +93,17 @@ class CourseSerializer(serializers.ModelSerializer):
         return None
 
     def get_author_username(self, obj):
-        # Проверяем, связан ли курс с автором
         if obj.author and obj.author.user:
             return obj.author.user.username
         return None
 
 
 class LessonSerializer(serializers.ModelSerializer):
-    module = serializers.CharField(source='module.title', read_only=True)
+    module = serializers.CharField(source='module.module', read_only=True)
 
     class Meta:
         model = Lesson
-        fields = ['id', 'name', 'short_description', 'module', 'video_url', 'uploaded_video', 'duration']
-
-    def validate(self, data):
-        if data.get('video_url') and data.get('uploaded_video'):
-            raise serializers.ValidationError("You cannot provide both a video URL and an uploaded video.")
-        if not data.get('video_url') and not data.get('uploaded_video'):
-            raise serializers.ValidationError("You must provide either a video URL or an uploaded video.")
-        return data
+        fields = ['id', 'name', 'short_description', 'module', 'video_url', 'uploaded_video', 'content']
 
 
 class ModuleSerializer(serializers.ModelSerializer):
@@ -120,4 +111,4 @@ class ModuleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Module
-        fields = ['module', 'id', 'lessons', 'duration']
+        fields = ['id', 'module', 'lessons', 'duration']

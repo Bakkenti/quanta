@@ -1,5 +1,4 @@
 from django.shortcuts import get_object_or_404, redirect
-from django.utils.text import slugify
 from django.urls import reverse
 from django.http import JsonResponse
 
@@ -22,13 +21,12 @@ from .serializers import (
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def signup(request):
-    if 'Authorization' in request.headers:
+    if request.user.is_authenticated:
         return Response({"message": "Вы уже зарегистрированы и авторизованы."}, status=status.HTTP_400_BAD_REQUEST)
 
     serializer = RegistrationSerializer(data=request.data)
     if serializer.is_valid():
         user = serializer.save()
-        Student.objects.create(user=user)
         refresh = RefreshToken.for_user(user)
         return Response({
             "message": "Registration successful!",
@@ -42,7 +40,8 @@ def signup(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login(request):
-    if 'Authorization' in request.headers:
+    # Check if the user is already authenticated
+    if request.user.is_authenticated:
         return Response({"message": "Вы уже авторизованы."}, status=status.HTTP_400_BAD_REQUEST)
 
     serializer = LoginSerializer(data=request.data)
@@ -114,37 +113,43 @@ def course_list(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def course(request, id, title=None):
-    course = get_object_or_404(Course.objects.prefetch_related('modules', 'modules__lessons'), id=id)
-    course_data = {
-        "id": course.id,
-        "title": course.title,
-        "description": course.description,
-        "course_image": course.course_image.url if course.course_image else None,
-        "duration": course.duration,
-        "students_count": course.students_count if hasattr(course, 'students_count') else 0,
-        "lessons_count": course.lessons_count if hasattr(course, 'lessons_count') else 0,
-        "level": course.level,
-        "rating": str(course.rating) if course.rating else "N/A",
-    }
+    try:
+        course = get_object_or_404(Course.objects.prefetch_related('modules', 'modules__lessons'), id=id)
+        course_data = {
+            "id": course.id,
+            "title": course.title,
+            "description": course.description,
+            "course_image": course.course_image.url if course.course_image else None,
+            "duration": course.duration,
+            "level": course.level,
+            "rating": course.rating,
+        }
 
-    modules = course.modules.all()
-    module_serializer = ModuleSerializer(modules, many=True)
+        modules = course.modules.all()
+        module_serializer = ModuleSerializer(modules, many=True)
 
-    author_data = {
-        "id": course.author.id if course.author else None,
-        "username": course.author.user.username if course.author and course.author.user else None,
-        "about": course.author.about if course.author else None,
-        "avatar": course.author.avatar.url if course.author and course.author.avatar else None,
-    }
+        author_data = None
+        if course.author:
+            # Access the 'user' (Student) fields via the Author model
+            author_data = {
+                "id": course.author.user.id,
+                "username": course.author.user.username,
+                "about": course.author.user.about,
+                "avatar": course.author.user.avatar.url if course.author.user.avatar else None,
+            }
 
-    response_data = {
-        "Overview": course_data,
-        "Curriculum": module_serializer.data,
-        "Author": author_data,
-        "Reviews": "Soon..."
-    }
+        response_data = {
+            "Overview": course_data,
+            "Curriculum": module_serializer.data,
+            "Author": author_data,
+            "Reviews": "Coming soon...",
+        }
 
-    return Response(response_data, status=status.HTTP_200_OK)
+        return Response(response_data, status=200)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
 
 
 @api_view(['GET'])

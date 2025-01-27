@@ -160,23 +160,12 @@ CKEDITOR_5_CONFIGS = {
     'default': {
         'language': 'en',
         'toolbar': [
-            'heading', '|', 'bold', 'italic', 'underline', 'link', 'bulletedList', 'numberedList', 'blockQuote', '|',
-            'insertTable', 'tableColumn', 'tableRow', 'mergeTableCells', '|',
-            'fontFamily', 'fontSize', 'fontColor', 'fontBackgroundColor', '|',
-            'imageUpload', 'removeFormat', 'undo', 'redo'
+            'heading', '|', 'bold', 'italic', 'underline', 'link', 'bulletedList',
+            'numberedList', 'blockQuote', '|', 'insertTable', 'tableColumn',
+            'tableRow', 'mergeTableCells', '|', 'fontFamily', 'fontSize',
+            'fontColor', 'fontBackgroundColor', '|', 'imageUpload', 'removeFormat',
+            'undo', 'redo'
         ],
-        'height': 300,
-        'width': '100%',
-        'skin': 'moon-dark',
-
-        'heading': {
-            'options': [
-                { 'model': 'paragraph', 'title': 'Paragraph', 'class': 'ck-heading_paragraph' },
-                { 'model': 'heading1', 'view': 'h1', 'title': 'Heading 1', 'class': 'ck-heading_heading1' },
-                { 'model': 'heading2', 'view': 'h2', 'title': 'Heading 2', 'class': 'ck-heading_heading2' },
-                { 'model': 'heading3', 'view': 'h3', 'title': 'Heading 3', 'class': 'ck-heading_heading3' }
-            ]
-        },
         'fontFamily': {
             'options': [
                 'default',
@@ -197,9 +186,71 @@ CKEDITOR_5_CONFIGS = {
                 'big',
                 'huge'
             ],
-        }
+        },
+        'fontColor': {
+            'columns': 5,
+            'documentColors': 10,
+            'colors': [
+                {
+                    'color': 'black',
+                    'label': 'Black'
+                },
+                {
+                    'color': 'red',
+                    'label': 'Red'
+                },
+                {
+                    'color': 'green',
+                    'label': 'Green'
+                },
+                {
+                    'color': 'blue',
+                    'label': 'Blue'
+                },
+                {
+                    'color': 'lightgray',
+                    'label': 'Light Gray'
+                },
+            ]
+        },
+        'fontBackgroundColor': {
+            'columns': 5,
+            'documentColors': 10,
+            'colors': [
+                {
+                    'color': 'lightgray',
+                    'label': 'Light Gray'
+                },
+                {
+                    'color': 'white',
+                    'label': 'White'
+                },
+                {
+                    'color': 'yellow',
+                    'label': 'Yellow'
+                },
+                {
+                    'color': 'lightblue',
+                    'label': 'Light Blue'
+                },
+                {
+                    'color': 'pink',
+                    'label': 'Pink'
+                },
+            ]
+        },
+        'styles': {
+            'default': {
+                'color': 'black',
+                'background-color': 'lightgray'
+            }
+        },
+        'height': 300,
+        'width': '100%',
+        'skin': 'moon-dark',
     }
 }
+
 
 
 

@@ -1,47 +1,107 @@
 from django.contrib import admin
-from .models import Course, Module, Lesson, Author
+from django import forms
+from django_ckeditor_5.widgets import CKEditor5Widget
+from .models import Author, Course, Module, Lesson, AuthorCourse, Student
+from django.contrib.auth.models import Group
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.models import User
+from django.utils.translation import gettext_lazy as _
+
+User._meta.verbose_name = _("Super User")
+User._meta.verbose_name_plural = _("Super Users")
+admin.site.unregister(Group)
+
+
+class StudentAdmin(admin.ModelAdmin):
+    list_display = ('username', 'email', 'role')
+    fieldsets = (
+        (None, {'fields': ('username', 'email', 'password')}),
+        ('Personal Info', {'fields': ('about', 'birthday', 'phone_number', 'gender')}),
+    )
+    search_fields = ('username', 'email')
+    ordering = ('username',)
+
+admin.site.register(Student, StudentAdmin)
+
+class AuthorAdminForm(forms.ModelForm):
+    user = forms.ModelChoiceField(
+        queryset=Student.objects.all(),
+        label="Select Student to Promote",
+        required=True
+    )
+
+    class Meta:
+        model = Author
+        fields = ['user', 'published_courses']
+
+    def save(self, commit=True):
+        # Get the selected student
+        student = self.cleaned_data['user']
+        # Update the role of the student
+        student.role = "author"
+        student.save()
+
+        # Create or update the Author instance
+        return super().save(commit=commit)
+
 
 @admin.register(Author)
 class AuthorAdmin(admin.ModelAdmin):
+    form = AuthorAdminForm
+    list_display = ['user', 'get_user_role']
     search_fields = ['user__username', 'user__email']
 
-class ModuleInline(admin.TabularInline):
+    def get_user_role(self, obj):
+        return obj.user.role
+
+    get_user_role.short_description = 'Role'
+
+
+class CourseAdminForm(forms.ModelForm):
+    description = forms.CharField(widget=forms.Textarea, required=False)
+
+    class Meta:
+        model = Course
+        fields = '__all__'
+
+
+class ModuleInline(admin.TabularInline):  # Inline class for modules
     model = Module
-    extra = 0
-    fields = ('title',)
+    extra = 1  # Number of empty forms to display
+    fields = ['module', 'duration']  # Fields to display for modules
+    show_change_link = True  # Allow linking to the module change page
+
+
+class LessonAdminForm(forms.ModelForm):
+    content = forms.CharField(widget=CKEditor5Widget(config_name='default'))
+
+    class Meta:
+        model = Lesson
+        fields = '__all__'
+
+
+@admin.register(Course)
+class CourseAdmin(admin.ModelAdmin):
+    form = CourseAdminForm
+    inlines = [ModuleInline]  # Include the inline form for modules
+    list_display = ['title', 'level', 'rating']
+    search_fields = ['title']
+    list_filter = ['level']
+    autocomplete_fields = ['author']
 
 
 class LessonInline(admin.TabularInline):
     model = Lesson
     extra = 0
-    fields = ('name', 'duration', 'video_url')
+    fields = ['name', 'video_url', 'uploaded_video']
 
-
-@admin.register(Course)
-class CourseAdmin(admin.ModelAdmin):
-    inlines = [ModuleInline]
-    list_display = ('title', 'total_lessons', 'total_duration')
-    search_fields = ('title',)
-    list_filter = ('level', 'author')
-    autocomplete_fields = ['author']
-
-
-
-@admin.register(Module)
-class ModuleAdmin(admin.ModelAdmin):
-    inlines = [LessonInline]
-    list_display = ('module', 'course', 'get_total_duration')
-    search_fields = ('module', 'course__title')
-    list_filter = ('course',)
-
-    def get_total_duration(self, obj):
-        return obj.total_duration()
-
-    get_total_duration.short_description = "Total Duration"
 
 
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
-    list_display = ('name', 'module', 'duration', 'video_url')
-    search_fields = ('name', 'module__module')
-    list_filter = ('module',)
+    form = LessonAdminForm
+    list_display = ['name', 'module', 'video_url', 'uploaded_video']
+    search_fields = ['name', 'module__module']
+    list_filter = ['module']
+
+
