@@ -18,10 +18,10 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'quant.up.railway.app']
 
-INTERNAL_IPS = [
+INTERNAL_IPS = (
     '127.0.0.1',
-    'localhost'
-]
+    'localhost:8000'
+)
 
 CSRF_TRUSTED_ORIGINS = ['https://quant.up.railway.app']
 
@@ -72,7 +72,6 @@ CORS_ALLOWED_ORIGINS = [
     "https://jasulan273.github.io",
     "https://quant.up.railway.app",
 ]
-CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = 'edu_platform.urls'
 
@@ -134,9 +133,6 @@ AUTH_PASSWORD_VALIDATORS = [
 
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.PBKDF2PasswordHasher',
-    'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
-    'django.contrib.auth.hashers.Argon2PasswordHasher',
-    'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
 ]
 
 # Internationalization
@@ -164,19 +160,99 @@ CKEDITOR_5_CONFIGS = {
     'default': {
         'language': 'en',
         'toolbar': [
-            'htmlEmbed', 'heading', '|', 'bold', 'italic', 'underline', 'link',
-            'bulletedList', 'numberedList', 'blockQuote', '|', 'insertTable',
-            'tableColumn', 'tableRow', 'mergeTableCells', '|', 'fontFamily',
-            'fontSize', 'fontColor', 'fontBackgroundColor', '|', 'imageUpload',
-            'removeFormat', 'undo', 'redo'
+            'heading', '|', 'bold', 'italic', 'underline', 'link', 'bulletedList',
+            'numberedList', 'blockQuote', '|', 'insertTable', 'tableColumn',
+            'tableRow', 'mergeTableCells', '|', 'fontFamily', 'fontSize',
+            'fontColor', 'fontBackgroundColor', '|', 'imageUpload', 'removeFormat',
+            'undo', 'redo'
         ],
-        'defaultColor': 'black',
-        'defaultBackgroundColor': 'lightgray',
+        'fontFamily': {
+            'options': [
+                'default',
+                'Arial, sans-serif',
+                'Courier New, Courier, monospace',
+                'Georgia, serif',
+                'Lucida Sans Unicode, Lucida Grande, sans-serif',
+                'Tahoma, Geneva, sans-serif',
+                'Times New Roman, Times, serif',
+                'Verdana, Geneva, sans-serif'
+            ],
+        },
+        'fontSize': {
+            'options': [
+                'default',
+                'tiny',
+                'small',
+                'big',
+                'huge'
+            ],
+        },
+        'fontColor': {
+            'columns': 5,
+            'documentColors': 10,
+            'colors': [
+                {
+                    'color': 'black',
+                    'label': 'Black'
+                },
+                {
+                    'color': 'red',
+                    'label': 'Red'
+                },
+                {
+                    'color': 'green',
+                    'label': 'Green'
+                },
+                {
+                    'color': 'blue',
+                    'label': 'Blue'
+                },
+                {
+                    'color': 'lightgray',
+                    'label': 'Light Gray'
+                },
+            ]
+        },
+        'fontBackgroundColor': {
+            'columns': 5,
+            'documentColors': 10,
+            'colors': [
+                {
+                    'color': 'lightgray',
+                    'label': 'Light Gray'
+                },
+                {
+                    'color': 'white',
+                    'label': 'White'
+                },
+                {
+                    'color': 'yellow',
+                    'label': 'Yellow'
+                },
+                {
+                    'color': 'lightblue',
+                    'label': 'Light Blue'
+                },
+                {
+                    'color': 'pink',
+                    'label': 'Pink'
+                },
+            ]
+        },
+        'styles': {
+            'default': {
+                'color': 'black',
+                'background-color': 'lightgray'
+            }
+        },
         'height': 300,
         'width': '100%',
         'skin': 'moon-dark',
     }
 }
+
+
+
 
 
 
