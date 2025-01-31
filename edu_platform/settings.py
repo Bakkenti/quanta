@@ -160,6 +160,7 @@ CKEDITOR_5_CONFIGS = {
     'default': {
         'language': 'en',
         'toolbar': [
+            'htmlEmbed',
             'heading', '|', 'bold', 'italic', 'underline', 'link', 'bulletedList',
             'numberedList', 'blockQuote', '|', 'insertTable', 'tableColumn',
             'tableRow', 'mergeTableCells', '|', 'fontFamily', 'fontSize',
