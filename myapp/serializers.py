@@ -8,7 +8,8 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Student
-        fields = ['username', 'email', 'password', 'confirm_password', 'role', 'avatar', 'about', 'birthday', 'phone_number', 'gender']
+        fields = ['username', 'email', 'password', 'confirm_password', 'role', 'avatar', 'about', 'birthday',
+                  'phone_number', 'gender']
 
     def validate(self, data):
         if data['password'] != data['confirm_password']:
@@ -63,7 +64,6 @@ class LoginSerializer(serializers.Serializer):
         return data
 
 
-
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
@@ -88,14 +88,10 @@ class CourseSerializer(serializers.ModelSerializer):
         ]
 
     def get_course_image(self, obj):
-        if obj.course_image:
-            return obj.course_image.url
-        return None
+        return obj.course_image.url if obj.course_image else None
 
     def get_author_username(self, obj):
-        if obj.author and obj.author.user:
-            return obj.author.user.username
-        return None
+        return obj.author.user.username if obj.author and obj.author.user else None
 
 
 class LessonSerializer(serializers.ModelSerializer):

@@ -4,4 +4,5 @@ from .models import Lesson
 
 @receiver([post_save, post_delete], sender=Lesson)
 def update_course_lessons(sender, instance, **kwargs):
-    instance.module.course.update_total_lessons()
+    if instance.module and instance.module.course:
+        instance.module.course.update_total_lessons()

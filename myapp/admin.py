@@ -23,6 +23,7 @@ class StudentAdmin(admin.ModelAdmin):
 
 admin.site.register(Student, StudentAdmin)
 
+
 class AuthorAdminForm(forms.ModelForm):
     user = forms.ModelChoiceField(
         queryset=Student.objects.all(),
@@ -35,13 +36,9 @@ class AuthorAdminForm(forms.ModelForm):
         fields = ['user', 'published_courses']
 
     def save(self, commit=True):
-        # Get the selected student
         student = self.cleaned_data['user']
-        # Update the role of the student
         student.role = "author"
         student.save()
-
-        # Create or update the Author instance
         return super().save(commit=commit)
 
 
@@ -65,15 +62,15 @@ class CourseAdminForm(forms.ModelForm):
         fields = '__all__'
 
 
-class ModuleInline(admin.TabularInline):  # Inline class for modules
+class ModuleInline(admin.TabularInline):
     model = Module
-    extra = 1  # Number of empty forms to display
-    fields = ['module', 'duration']  # Fields to display for modules
-    show_change_link = True  # Allow linking to the module change page
+    extra = 1
+    fields = ['module', 'duration']
+    show_change_link = True
 
 
 class LessonAdminForm(forms.ModelForm):
-    content = forms.CharField(widget=CKEditor5Widget(config_name='default'))
+    content = forms.CharField(widget=CKEditor5Widget(config_name='default'))  # CKEditor for content
 
     class Meta:
         model = Lesson
@@ -83,7 +80,7 @@ class LessonAdminForm(forms.ModelForm):
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
     form = CourseAdminForm
-    inlines = [ModuleInline]  # Include the inline form for modules
+    inlines = [ModuleInline]
     list_display = ['title', 'level', 'rating']
     search_fields = ['title']
     list_filter = ['level']
@@ -96,12 +93,9 @@ class LessonInline(admin.TabularInline):
     fields = ['name', 'video_url', 'uploaded_video']
 
 
-
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
     form = LessonAdminForm
     list_display = ['name', 'module', 'video_url', 'uploaded_video']
     search_fields = ['name', 'module__module']
     list_filter = ['module']
-
-

@@ -39,8 +39,9 @@ def signup(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@api_view(['POST'])
+@permission_classes([AllowAny])
 def login(request):
-    # Check if the user is already authenticated
     if request.user.is_authenticated:
         return Response({"message": "Вы уже авторизованы."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -67,7 +68,8 @@ def login(request):
         response['Authorization'] = f'Bearer {access_token}'
         return response
 
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    return Response(serializer.errors, status=status.HTTP_401_UNAUTHORIZED)
+
 
 
 @api_view(['POST'])
@@ -89,9 +91,6 @@ def logout(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def profile(request):
-    if not request.user.is_authenticated:
-        return Response({"error": "User not authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
-
     student = getattr(request.user, 'student', None)
     if not student:
         return Response({"error": "Student profile not found"}, status=404)
@@ -129,8 +128,7 @@ def course(request, id, title=None):
         module_serializer = ModuleSerializer(modules, many=True)
 
         author_data = None
-        if course.author:
-            # Access the 'user' (Student) fields via the Author model
+        if course.author and course.author.user:
             author_data = {
                 "id": course.author.user.id,
                 "username": course.author.user.username,
@@ -157,12 +155,13 @@ def course(request, id, title=None):
 def lesson(request, id, lessonid=None, name=None):
     course = get_object_or_404(Course, id=id)
     lesson = get_object_or_404(Lesson, id=lessonid, module__course=course)
+
     lesson_data = {
         "id": lesson.id,
         "name": lesson.name,
         "description": lesson.short_description,
         "content": lesson.content,
-        "video_url": lesson.video_url,
+        "video_url": lesson.video_url if lesson.video_url else None,
         "uploaded_video": lesson.uploaded_video.url if lesson.uploaded_video else None,
     }
 
