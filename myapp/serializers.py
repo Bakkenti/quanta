@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Author, Student, Course, Module, Lesson
+from .models import Author, Student, Course, Module, Lesson, Review
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
@@ -83,8 +83,7 @@ class CourseSerializer(serializers.ModelSerializer):
             'author_username',
             'description',
             'duration',
-            'level',
-            'rating',
+            'level'
         ]
 
     def get_course_image(self, obj):
@@ -108,3 +107,14 @@ class ModuleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Module
         fields = ['id', 'module', 'lessons', 'duration']
+
+class ReviewSerializer(serializers.ModelSerializer):
+    user_username = serializers.CharField(source='user.username', read_only=True)
+    created_at = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Review
+        fields = ['id', 'user_username', 'rating', 'feedback', 'created_at']
+
+    def get_created_at(self, obj):
+        return obj.created_at.strftime("%d %B %Y")
