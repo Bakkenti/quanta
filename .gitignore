@@ -1,6 +1,4 @@
-/.venv
-/staticfiles
-/static
-/.idea
-/.env
-/media
+.venv/
+staticfiles/
+.idea
+.env

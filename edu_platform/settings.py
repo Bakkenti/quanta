@@ -29,6 +29,7 @@ CSRF_TRUSTED_ORIGINS = ['https://quant.up.railway.app']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
+    'django.contrib.sites',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -40,11 +41,19 @@ INSTALLED_APPS = [
     'whitenoise.runserver_nostatic',
     'django_ckeditor_5',
     'corsheaders',
+    'nested_admin',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.facebook',
 ]
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
@@ -53,6 +62,31 @@ REST_FRAMEWORK = {
 
 LOGIN_URL = '/login/'
 
+AUTHENTICATION_BACKENDS = (
+    'allauth.account.auth_backends.AuthenticationBackend',
+)
+
+SITE_ID = 1  # Ensure this is set in your settings, as it's required by the Django Sites framework.
+
+# Allauth settings for user registration and login
+# allauth settings
+ACCOUNT_USER_MODEL_USERNAME_FIELD = "username"  # Если используешь кастомный User
+ACCOUNT_EMAIL_REQUIRED = False
+ACCOUNT_EMAIL_VERIFICATION = "optional"
+ACCOUNT_LOGIN_METHODS = {"username"}  # 🔥 Новый параметр вместо ACCOUNT_AUTHENTICATION_METHOD
+ACCOUNT_ADAPTER = "allauth.account.adapter.DefaultAccountAdapter"
+
+
+# Redirect URLs after login, logout, etc.
+LOGIN_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = "/profile/"
+
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -64,6 +98,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
 ]
 
 CORS_ALLOWED_ORIGINS = [
@@ -146,13 +181,23 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
+
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 
+MEDIA_FOLDERS = ["avatars", "course_images", "lesson_videos"]
+
+for folder in MEDIA_FOLDERS:
+    path = os.path.join(MEDIA_ROOT, folder)
+    os.makedirs(path, exist_ok=True)
 
 CKEDITOR_STORAGE_BACKEND = 'myapp.custom_storage.UniqueFilenameStorage'
 CKEDITOR_5_UPLOADS = 'course_images/'

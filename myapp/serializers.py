@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import Author, Student, Course, Module, Lesson, Review
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
@@ -36,38 +38,25 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
 
 class LoginSerializer(serializers.Serializer):
-    username = serializers.CharField(required=False)
-    email = serializers.EmailField(required=False)
-    password = serializers.CharField(write_only=True)
+    username = serializers.CharField()
+    password = serializers.CharField()
 
-    def validate(self, data):
-        username = data.get('username')
-        email = data.get('email')
-        password = data.get('password')
+    def validate(self, attrs):
+        username = attrs.get('username')
+        password = attrs.get('password')
 
-        if not username and not email:
-            raise serializers.ValidationError({"error": "Username or email is required."})
-
-        user = None
-        if username:
-            user = Student.objects.filter(username=username).first()
-        elif email:
-            user = Student.objects.filter(email=email).first()
-
-        if not user:
-            raise serializers.ValidationError({"error": "User not found."})
-
-        if not user.check_password(password):
-            raise serializers.ValidationError({"error": "Invalid password."})
-
-        data['user'] = user
-        return data
+        # You can add custom validation here, if needed
+        return attrs
 
 
 class ProfileSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+    email = serializers.EmailField(source='user.email', read_only=True)
+
     class Meta:
         model = Student
         fields = ['id', 'username', 'email', 'role', 'avatar', 'about', 'birthday', 'phone_number', 'gender']
+
 
 
 class CourseSerializer(serializers.ModelSerializer):

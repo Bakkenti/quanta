@@ -1,0 +1,70 @@
+textarea {
+    max-height: 80px;
+    resize: none;
+    width: 70%;
+}
+
+fieldset.collapse {
+    border: 1px solid #ddd !important;
+    padding: 10px !important;
+    margin-top: 10px !important;
+}
+
+fieldset.collapse legend {
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* Стили для модулей */
+.module h2, .inline-group h2 {
+    font-size: 22px !important;
+    color: #20526b !important;
+    font-weight: bold;
+}
+
+/* Стили для инлайн-групп */
+.inline-group {
+    border: 1px solid #444 !important;
+    border-radius: 5px;
+    padding: 10px;
+    background: #1a1a1a !important;
+}
+
+/* Компактное отображение строк уроков */
+.inline-group .tabular tr td {
+    vertical-align: middle;
+    padding: 5px 10px;
+}
+
+.video-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 5px 0;
+}
+
+.video-input {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+
+.video-container input {
+    width: 100%;
+    padding: 5px;
+}
+
+textarea[name="short_description"] {
+    height: 50px !important;
+    resize: none !important;
+    width: 60% !important;
+}
+/* Target the specific textarea within your admin form */
+td.djn-td.field-short_description textarea.vLargeTextField {
+    width: 60% !important;  /* Adjust width */
+    height: 50px !important; /* Adjust height */
+    resize: none !important; /* Disable resizing */
+}
+
+
