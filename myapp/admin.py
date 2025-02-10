@@ -56,9 +56,20 @@ class AuthorAdminForm(forms.ModelForm):
 
     def save(self, commit=True):
         student = self.cleaned_data['user']
+
+        if not student.user:
+            raise ValidationError("This student does not have an associated user.")
+
+        # Получаем username
+        username = student.user.username if student.user else "No Username"
+        print(f"Promoting student {username} to author.")  # Логируем имя пользователя
+
+        # Обновляем роль студента
         student.role = "author"
         student.save()
+
         return super().save(commit=commit)
+
 
 @admin.register(Author)
 class AuthorAdmin(admin.ModelAdmin):

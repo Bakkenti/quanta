@@ -19,6 +19,10 @@ def validate_module_duration(value):
     if not re.match(pattern, value):
         raise ValidationError("Enter a valid duration (e.g., '2 hours' or '15 minutes').")
 
+from django.contrib.auth.models import User
+from django.db import models
+from django.contrib.auth.hashers import make_password, check_password
+
 class Student(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="student", null=True, blank=True)
 
@@ -32,35 +36,39 @@ class Student(models.Model):
     about = models.TextField(max_length=500, null=True, blank=True, default="")
     birthday = models.DateField(null=True, blank=True)
     phone_number = models.CharField(max_length=15, null=True, blank=True)
-
     gender_choices = [("M", "Male"), ("F", "Female"), ("O", "Other")]
     gender = models.CharField(choices=gender_choices, null=True, max_length=1, blank=True)
-
     enrolled_courses = models.ManyToManyField("Course", blank=True, related_name="students")
 
     def set_password(self, raw_password):
-        self.password = make_password(raw_password)
+        if self.user:
+            self.user.set_password(raw_password)
 
     def check_password(self, raw_password):
-        return check_password(raw_password, self.password)
+        if self.user:
+            return self.user.check_password(raw_password)
+        return False
 
     def is_enrolled(self, course):
         return self.enrolled_courses.filter(id=course.id).exists()
 
     def save(self, *args, **kwargs):
         if not self.user:
-            self.user = User.objects.first()
+            raise ValueError("Student must have an associated user.")
+
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.user.username} ({self.role})"
+        if self.user:
+            return self.user.username
+        return "No Username"
 
 
 class Author(models.Model):
     user = models.OneToOneField(Student, on_delete=models.CASCADE, related_name="author")
 
     def __str__(self):
-        return f"Author: {self.user.username}"
+        return f"Author: {self.user.user.username}"
 
 
 class Course(models.Model):

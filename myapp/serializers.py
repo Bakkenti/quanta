@@ -79,7 +79,9 @@ class CourseSerializer(serializers.ModelSerializer):
         return obj.course_image.url if obj.course_image else None
 
     def get_author_username(self, obj):
-        return obj.author.user.username if obj.author and obj.author.user else None
+        if obj.author and hasattr(obj.author, 'user') and obj.author.user:
+            return "obj.author.user.username"
+        return None
 
 
 class LessonSerializer(serializers.ModelSerializer):

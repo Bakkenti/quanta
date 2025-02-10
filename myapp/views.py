@@ -27,7 +27,9 @@ from django.contrib.auth.hashers import check_password
 from allauth.account.views import LoginView, SignupView
 from django.contrib import messages
 from django.contrib.auth import get_user_model
+import logging
 
+logger = logging.getLogger(__name__)
 class login(LoginView):
     def form_valid(self, form):
         messages.success(self.request, f"✅ Welcome back, {self.request.user.username}!")
@@ -76,9 +78,8 @@ def course(request, id):
         if request.user.is_authenticated and hasattr(request.user, 'student'):
             student = request.user.student
         else:
-            student = None  # Guest user (not logged in)
+            student = None
 
-        # Handle review submission (POST)
         if request.method == 'POST':
             if not student:
                 return Response({"error": "You must be logged in to write a review."}, status=status.HTTP_401_UNAUTHORIZED)
@@ -111,20 +112,22 @@ def course(request, id):
 
         author_data = None
         if course.author and course.author.user:
-            author_data = {
-                "id": course.author.user.id,
-                "username": course.author.user.username,
-                "about": course.author.user.about,
-                "avatar": course.author.user.avatar.url if course.author.user.avatar else None,
-            }
+            author_data = None
+            if course.author and hasattr(course.author, 'user'):
+                user = course.author.user
+                author_data = {
+                    "id": user.id,
+                    "username": "a",
+                    "about": getattr(course.author, 'about', None),
+                    "avatar": user.avatar.url if getattr(user, 'avatar', None) else None,
+                }
 
         # Fetch existing reviews
         reviews = Review.objects.filter(course=course)
         reviews_data = ReviewSerializer(reviews, many=True).data
 
-        # Check if the student has already reviewed (only if authenticated)
         existing_review = Review.objects.filter(user=student, course=course).first() if student else None
-        can_write_review = student and not existing_review and student.is_enrolled(course)
+        can_write_review = student and not existing_review and student.user.is_enrolled(course)
 
         write_review = {
             "allowed": can_write_review,
