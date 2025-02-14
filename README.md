@@ -1,7 +1,9 @@
 ```markdown
 # QUANTA - Educational Platform
 
-QUANTA is an educational platform similar to Stepik, built with Django and React. It allows users to create, manage, and enroll in courses, while providing a CKEditor-powered admin panel for content editing.
+QUANTA is an educational platform similar to Stepik, built with Django and React.
+It allows users to create, manage, and enroll in courses, while
+providing a CKEditor-powered admin panel for content editing.
 
 ## Features
 
