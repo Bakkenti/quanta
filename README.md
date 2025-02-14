@@ -1,5 +1,3 @@
-Вот полный и корректный `README.md` для твоего проекта **QUANTA**, с учетом использования Django, CKEditor, React-админки и других технологий.  
-
 ```markdown
 # QUANTA - Educational Platform
 
