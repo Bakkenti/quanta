@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Author, Student, Course, Module, Lesson, Review
+from .models import Author, Student, Course, Module, Lesson, Review, Advertisement
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 
@@ -22,9 +22,15 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data.pop('confirm_password')
-        student = Student.objects.create(
+
+        user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
+            password=validated_data['password']
+        )
+
+        student = Student.objects.create(
+            user=user,
             role=validated_data.get('role', 'guest'),
             avatar=validated_data.get('avatar'),
             about=validated_data.get('about'),
@@ -32,8 +38,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
             phone_number=validated_data.get('phone_number'),
             gender=validated_data.get('gender'),
         )
-        student.set_password(validated_data['password'])
-        student.save()
+
         return student
 
 
@@ -61,7 +66,7 @@ class ProfileSerializer(serializers.ModelSerializer):
 
 class CourseSerializer(serializers.ModelSerializer):
     course_image = serializers.SerializerMethodField()
-    author_username = serializers.SerializerMethodField()
+    author_username = serializers.CharField(source="author.user.username", read_only=True)
 
     class Meta:
         model = Course
@@ -77,11 +82,6 @@ class CourseSerializer(serializers.ModelSerializer):
 
     def get_course_image(self, obj):
         return obj.course_image.url if obj.course_image else None
-
-    def get_author_username(self, obj):
-        if obj.author and hasattr(obj.author, 'user') and obj.author.user:
-            return "obj.author.user.username"
-        return None
 
 
 class LessonSerializer(serializers.ModelSerializer):
@@ -109,3 +109,8 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     def get_created_at(self, obj):
         return obj.created_at.strftime("%d %B %Y")
+
+class AdvertisementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Advertisement
+        fields = ["id", "name", "content", "image", "url", "created_at"]

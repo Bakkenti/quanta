@@ -6,10 +6,10 @@ from django_ckeditor_5.fields import CKEditor5Field
 from .custom_storage import video_storage
 import re
 from django.contrib.auth import get_user_model
-
+from django.db.models import Count, Avg
 
 def validate_course_duration(value):
-    pattern = r'^(?P<value>([1-9]|[1-2][0-9]|30)) (?P<unit>(week|day|weeks|days))$'
+    pattern = r'^(?P<value>[1-9]|[1-2][0-9]|30) (?P<unit>(day|week|days|weeks))$'
     if not re.match(pattern, value):
         raise ValidationError("Enter a valid duration (e.g., '3 weeks' or '1 day').")
 
@@ -19,9 +19,11 @@ def validate_module_duration(value):
     if not re.match(pattern, value):
         raise ValidationError("Enter a valid duration (e.g., '2 hours' or '15 minutes').")
 
-from django.contrib.auth.models import User
-from django.db import models
-from django.contrib.auth.hashers import make_password, check_password
+
+def validate_phone_number(value):
+    if not re.match(r"^\+?[1-9]\d{1,14}$", value):
+        raise ValidationError("Enter a valid phone number (e.g., +1234567890).")
+
 
 class Student(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="student", null=True, blank=True)
@@ -35,7 +37,7 @@ class Student(models.Model):
     avatar = models.ImageField(upload_to="avatars/", null=True, blank=True)
     about = models.TextField(max_length=500, null=True, blank=True, default="")
     birthday = models.DateField(null=True, blank=True)
-    phone_number = models.CharField(max_length=15, null=True, blank=True)
+    phone_number = models.CharField(max_length=15, validators=[validate_phone_number], null=True, blank=True)
     gender_choices = [("M", "Male"), ("F", "Female"), ("O", "Other")]
     gender = models.CharField(choices=gender_choices, null=True, max_length=1, blank=True)
     enrolled_courses = models.ManyToManyField("Course", blank=True, related_name="students")
@@ -54,8 +56,7 @@ class Student(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.user:
-            raise ValueError("Student must have an associated user.")
-
+            raise ValidationError("Student must have an associated user.")
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -65,15 +66,14 @@ class Student(models.Model):
 
 
 class Author(models.Model):
-    user = models.OneToOneField(Student, on_delete=models.CASCADE, related_name="author")
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="author")
 
     def __str__(self):
-        return f"Author: {self.user.user.username}"
-
+        return f"Author: {self.user.username if self.user else 'Unknown'}"
 
 class Course(models.Model):
     title = models.CharField(max_length=200)
-    author = models.ForeignKey(Author, on_delete=models.SET_NULL, null=True, blank=True, related_name="courses")
+    author = models.ForeignKey(Author, on_delete=models.CASCADE)
     LEVEL_CHOICES = [
         ("all", "All Levels"),
         ("beginner", "Beginner"),
@@ -84,6 +84,7 @@ class Course(models.Model):
     duration = models.CharField(max_length=20, validators=[validate_course_duration])
     level = models.CharField(max_length=50, choices=LEVEL_CHOICES, default="all")
     course_image = models.ImageField(upload_to="course_images/", null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.title
@@ -107,17 +108,16 @@ class Lesson(models.Model):
     content = CKEditor5Field(config_name='default', blank=True, null=True)
 
     def clean(self):
-        if self.video_url and self.uploaded_video:
-            raise ValidationError("You cannot provide both a video URL and an uploaded video.")
-        if not self.video_url and not self.uploaded_video:
-            raise ValidationError("You must provide either a video URL or an uploaded video.")
+        if any([self.video_url, self.uploaded_video]) and not all([self.video_url, self.uploaded_video]):
+            return
+        raise ValidationError("You must provide either a video URL or an uploaded video, but not both.")
 
     def __str__(self):
         return f"{self.name} - {self.module.module}"
 
 
 class Review(models.Model):
-    user = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="reviews")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reviews")
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="reviews")
     rating = models.PositiveSmallIntegerField(choices=[(i, i) for i in range(1, 6)])
     feedback = models.TextField(max_length=1000, blank=True)
@@ -128,8 +128,58 @@ class Review(models.Model):
         unique_together = ("user", "course")
 
     def clean(self):
-        if not self.user.is_enrolled(self.course):
+        student = getattr(self.user, "student", None)
+        if not student or not student.is_enrolled(self.course):
             raise ValidationError("You must be enrolled in this course to leave a review.")
 
     def __str__(self):
         return f"{self.user.username} - {self.course.title} ({self.rating}/5) ⭐"
+
+
+class MostPopularCourse(models.Model):
+    course = models.OneToOneField("Course", on_delete=models.CASCADE, related_name="most_popular", unique=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    @classmethod
+    def update_most_popular(cls):
+        most_popular = (
+            Course.objects.annotate(student_count=Count("students"))
+            .filter(student_count__gt=0)
+            .order_by("-student_count", "-created_at", "-id")
+            .first()
+        )
+
+        if most_popular:
+            cls.objects.update_or_create(defaults={"course": most_popular})
+        else:
+            cls.objects.filter(id=1).delete()
+
+
+class BestCourse(models.Model):
+    course = models.OneToOneField("Course", on_delete=models.CASCADE, related_name="best_course", unique=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    @classmethod
+    def update_best_course(cls):
+        best_course = (
+            Course.objects.annotate(avg_rating=Avg("reviews__rating"), review_count=Count("reviews"))
+            .filter(review_count__gt=0)
+            .order_by("-avg_rating", "-review_count", "-created_at", "-id")
+            .first()
+        )
+
+        if best_course:
+            cls.objects.update_or_create(defaults={"course": best_course})
+        else:
+            cls.objects.filter(id=1).delete()
+
+class Advertisement(models.Model):
+    name = models.CharField(max_length=255)
+    content = CKEditor5Field(config_name='default', blank=True, null=True)
+    image = models.ImageField(upload_to="media/", null=True, blank=True)
+    url = models.URLField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
