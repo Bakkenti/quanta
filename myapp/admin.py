@@ -77,9 +77,14 @@ class AuthorAdmin(admin.ModelAdmin):
     search_fields = ['user__username']
 
     def get_user_role(self, obj):
-        return obj.user.role
+        if hasattr(obj.user, "student"):
+            return obj.user.student.role
+        elif hasattr(obj.user, "author"):
+            return "Author"
+        return "No Role"
 
-    get_user_role.short_description = 'Role'
+    get_user_role.short_description = "Role"
+
 
 class LessonForm(forms.ModelForm):
     class Meta:
