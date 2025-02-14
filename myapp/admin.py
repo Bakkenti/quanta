@@ -5,17 +5,16 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.models import Group, User
 from django.utils.translation import gettext_lazy as _
 from django.utils.html import format_html
-from .models import Author, Course, Module, Lesson, Student, Review
+from .models import Author, Course, Module, Lesson, Student, Review, Advertisement
 import nested_admin
 from django_ckeditor_5.fields import CKEditor5Field
 
-User._meta.verbose_name = _("Super User")
-User._meta.verbose_name_plural = _("Super Users")
+User._meta.verbose_name, User._meta.verbose_name_plural = _("User"), _("Users")
 admin.site.unregister(Group)
 
 admin.site.site_header = "Quanta Admin Panel"
 admin.site.site_title = "Quanta Admin"
-admin.site.index_title = "Manage Courses & Lessons"
+admin.site.index_title = "Manage Quanta Platform"
 
 class MyAdminSite(admin.AdminSite):
     class Media:
@@ -177,3 +176,25 @@ class ReviewAdmin(admin.ModelAdmin):
         if search_term:
             queryset = queryset.order_by('user__username')[:5]
         return queryset, use_distinct
+
+
+@admin.register(Advertisement)
+class AdvertisementAdmin(admin.ModelAdmin):
+    list_display = ('name', 'created_at', 'preview_image', 'url')
+    search_fields = ('name',)
+    list_filter = ('created_at',)
+    ordering = ('-created_at',)
+
+    fieldsets = (
+        (None, {'fields': ('name', 'content', 'image', 'url')}),
+        ('Metadata', {'fields': ('created_at',), 'classes': ('collapse',)}),
+    )
+
+    readonly_fields = ('created_at',)
+
+    def preview_image(self, obj):
+        if obj.image:
+            return format_html(f'<img src="{obj.image.url}" width="100" height="auto" />')
+        return "-"
+
+    preview_image.short_description = "Preview"

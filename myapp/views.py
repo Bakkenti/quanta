@@ -218,6 +218,7 @@ def best_course(request):
     serializer = CourseSerializer(best_course_entry.course, context={'request': request})
     return Response(serializer.data)
 
+@permission_classes([AllowAny])
 class advertisement(generics.ListAPIView):
     queryset = Advertisement.objects.all().order_by("-created_at")
     serializer_class = AdvertisementSerializer

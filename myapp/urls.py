@@ -14,9 +14,6 @@ urlpatterns = [
 
     path('logout/', auth_logout, name='logout'),
 
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-
     path('accounts/', include('allauth.urls')),
     path('mostpopularcourse/', most_popular_course, name='most_popular_course'),
     path('bestcourse/', best_course, name='best_course'),
