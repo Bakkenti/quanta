@@ -255,6 +255,7 @@ class BestCourseView(APIView):
         return Response(serializer.data)
 
 class AdvertisementView(generics.ListAPIView):
+    permission_classes = [AllowAny]
     queryset = Advertisement.objects.all().order_by("-created_at")
     serializer_class = AdvertisementSerializer
 
