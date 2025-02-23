@@ -10,13 +10,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'quant.up.railway.app']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'quant.up.railway.app', 'jasulan273.github.io/Quanta/']
 
 INTERNAL_IPS = ('127.0.0.1', 'localhost:8000')
 
 CORS_ALLOW_CREDENTIALS = True
 
-CSRF_TRUSTED_ORIGINS = ['https://quant.up.railway.app', 'http://localhost:8000', 'http://127.0.0.1:8000']
+CSRF_TRUSTED_ORIGINS = ['https://quant.up.railway.app', 'http://localhost:8000', 'http://127.0.0.1:8000', 'https://jasulan273.github.io/Quanta/']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
