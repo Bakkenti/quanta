@@ -58,13 +58,27 @@ class Logout(APIView):
         django_logout(request)
         return Response({"message": "Successfully logged out (GET)."}, status=200)
 
+
 class Profile(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        student, created = Student.objects.get_or_create(user=request.user)
-        serializer = ProfileSerializer(student)
-        return Response(serializer.data)
+        token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQwMzQ0MjA0LCJpYXQiOjE3NDAzNDM5MDQsImp0aSI6IjY3YzBlMTlkZDVjYzQwZmZhYTUzZTNiMTY0ZTQwMGY0IiwidXNlcl9pZCI6MTl9.ye3988d0MDONOc7VASmimN_TcWU7t2K0RiMQOIyRtqI"
+
+        # Прикрепляем токен к мета-информации запроса
+        request.META['HTTP_AUTHORIZATION'] = f'Bearer {token}'
+
+        user = request.user
+
+        if user.is_anonymous:
+            return Response({"detail": "Authentication credentials were not provided."},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+        return Response({
+            "username": user.username,
+            "email": user.email
+        })
+
 
 class CourseList(APIView):
     permission_classes = [AllowAny]
@@ -401,3 +415,4 @@ class AuthorLessonEditView(APIView):
 
         lesson.delete()
         return Response({"message": "Lesson deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
