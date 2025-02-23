@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import Author, Student, Course, Module, Lesson, Review, Advertisement
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
+from django_ckeditor_5.fields import CKEditor5Field
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
@@ -50,7 +51,6 @@ class LoginSerializer(serializers.Serializer):
         username = attrs.get('username')
         password = attrs.get('password')
 
-        # You can add custom validation here, if needed
         return attrs
 
 
@@ -86,10 +86,11 @@ class CourseSerializer(serializers.ModelSerializer):
 
 class LessonSerializer(serializers.ModelSerializer):
     module = serializers.CharField(source='module.module', read_only=True)
+    content = CKEditor5Field()
 
     class Meta:
         model = Lesson
-        fields = ['id', 'name', 'short_description', 'module', 'video_url', 'uploaded_video', 'content']
+        fields = ['module', 'lesson_id', 'name', 'short_description', 'video_url', 'uploaded_video', 'content']
 
 
 class ModuleSerializer(serializers.ModelSerializer):
@@ -97,7 +98,7 @@ class ModuleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Module
-        fields = ['id', 'module', 'lessons', 'duration']
+        fields = ['module_id', 'module', 'lessons', 'duration']
 
 class ReviewSerializer(serializers.ModelSerializer):
     user_username = serializers.CharField(source='user.username', read_only=True)

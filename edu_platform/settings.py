@@ -2,16 +2,10 @@ from pathlib import Path
 from datetime import timedelta
 import os
 from dotenv import load_dotenv
-from datetime import timedelta
 
-# Load environment variables from .env file
 load_dotenv()
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
@@ -25,7 +19,6 @@ INTERNAL_IPS = (
 
 CSRF_TRUSTED_ORIGINS = ['https://quant.up.railway.app']
 
-# Application definition
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -62,23 +55,25 @@ REST_FRAMEWORK = {
 
 LOGIN_URL = '/login/'
 
-AUTHENTICATION_BACKENDS = (
-    'allauth.account.auth_backends.AuthenticationBackend',
-)
 
-SITE_ID = 1  # Ensure this is set in your settings, as it's required by the Django Sites framework.
+SITE_ID = 1
 
-# Allauth settings for user registration and login
-# allauth settings
-ACCOUNT_USER_MODEL_USERNAME_FIELD = "username"  # Если используешь кастомный User
-ACCOUNT_EMAIL_REQUIRED = False
-ACCOUNT_EMAIL_VERIFICATION = "optional"
-ACCOUNT_LOGIN_METHODS = {"username"}  # 🔥 Новый параметр вместо ACCOUNT_AUTHENTICATION_METHOD
+ACCOUNT_USER_MODEL_USERNAME_FIELD = "username"
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = "none"
+ACCOUNT_LOGIN_METHODS = {"username"}
 ACCOUNT_ADAPTER = "allauth.account.adapter.DefaultAccountAdapter"
 
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+EMAIL_HOST_USER = 'baktiarlesov@gmail.com'
+EMAIL_HOST_PASSWORD = 'bcpz kdip nlsu kxxr'
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-# Redirect URLs after login, logout, etc.
-LOGIN_URL = "/accounts/login/"
+ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = '/login/'
+ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = '/profile/'
 LOGIN_REDIRECT_URL = "/profile/"
 
 
@@ -86,7 +81,6 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -128,9 +122,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'edu_platform.wsgi.application'
 
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -147,9 +138,6 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
-
-# Password validation
-# https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -170,16 +158,12 @@ PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.PBKDF2PasswordHasher',
 ]
 
-# Internationalization
-# https://docs.djangoproject.com/en/5.1/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
@@ -295,10 +279,5 @@ CKEDITOR_5_CONFIGS = {
         'skin': 'moon-dark',
     }
 }
-
-
-
-
-
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

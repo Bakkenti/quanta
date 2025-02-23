@@ -6,7 +6,7 @@ from django_ckeditor_5.fields import CKEditor5Field
 from .custom_storage import video_storage
 import re
 from django.contrib.auth import get_user_model
-from django.db.models import Count, Avg
+from django.db.models import Count, Avg, Max
 
 def validate_course_duration(value):
     pattern = r'^(?P<value>[1-9]|[1-2][0-9]|30) (?P<unit>(day|week|days|weeks))$'
@@ -56,7 +56,7 @@ class Student(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.user:
-            raise ValidationError("Student must have an associated user.")
+            print(f"Warning: Saving a student without an associated user. Student ID: {self.id}")
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -94,9 +94,27 @@ class Module(models.Model):
     module = models.CharField(max_length=200)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="modules")
     duration = models.CharField(max_length=20, validators=[validate_module_duration])
+    module_id = models.IntegerField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('course', 'module')
+
+    def save(self, *args, **kwargs):
+        if not self.module:
+            raise ValidationError("Module name is required.")
+
+        if not self.module_id:
+            last_module = Module.objects.filter(course=self.course).aggregate(Max('module_id'))
+            last_id = last_module['module_id__max'] or 0
+            self.module_id = last_id + 1
+
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.module} - {self.course.title}"
+        return f"Module: {self.module} - {self.course.title}"
+
+    def __str__(self):
+        return f"Module: {self.module} - {self.course.title}"
 
 
 class Lesson(models.Model):
@@ -106,14 +124,29 @@ class Lesson(models.Model):
     video_url = models.URLField(blank=True, null=True)
     uploaded_video = models.FileField(upload_to="lesson_videos/", storage=video_storage, blank=True, null=True)
     content = CKEditor5Field(config_name='default', blank=True, null=True)
+    lesson_id = models.IntegerField(null=True, blank=True)
 
     def clean(self):
-        if any([self.video_url, self.uploaded_video]) and not all([self.video_url, self.uploaded_video]):
-            return
-        raise ValidationError("You must provide either a video URL or an uploaded video, but not both.")
+        if self.video_url and self.uploaded_video:
+            raise ValidationError("You can only provide either a video URL or an uploaded video, not both.")
+
+    class Meta:
+        unique_together = ('module', 'name')
+
+    def save(self, *args, **kwargs):
+        if not self.name:
+            raise ValidationError("Lesson name is required.")
+
+        if not self.lesson_id:
+            last_lesson = Lesson.objects.filter(module=self.module).aggregate(Max('lesson_id'))
+            last_id = last_lesson['lesson_id__max'] or 0
+            self.lesson_id = last_id + 1
+
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.name} - {self.module.module}"
+        return f"Lesson: {self.name} - Module {self.module.module}"
+
 
 
 class Review(models.Model):

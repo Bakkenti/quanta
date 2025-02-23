@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django import forms
 from django.forms import inlineformset_factory
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.contrib.auth.models import Group, User
 from django.utils.translation import gettext_lazy as _
 from django.utils.html import format_html
@@ -10,7 +10,6 @@ import nested_admin
 from django_ckeditor_5.fields import CKEditor5Field
 
 User._meta.verbose_name, User._meta.verbose_name_plural = _("User"), _("Users")
-admin.site.unregister(Group)
 
 admin.site.site_header = "Quanta Admin Panel"
 admin.site.site_title = "Quanta Admin"
@@ -22,24 +21,40 @@ class MyAdminSite(admin.AdminSite):
             'all': ('admin/custom.css',)
         }
 
-
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
     list_display = ('get_username', 'role')
     fieldsets = (
-        (None, {'fields': ('username','password')}),  # You may not need 'username' here if it's part of User
+        (None, {'fields': ('user',)}),
         ('Personal Info', {
             'classes': ('collapse',),
             'fields': ('about', 'birthday', 'phone_number', 'gender'),
         }),
     )
-    search_fields = ('user__username', )  # Correct search reference
-    ordering = ('user__username',)  # Correct ordering reference
+    search_fields = ('user__username', )
+    ordering = ('user__username',)
+    raw_id_fields = ('user',)
 
     def get_username(self, obj):
-        return obj.user.username  # Access username from the related User model
+        return obj.user.username
 
     get_username.short_description = 'Username'
+
+
+
+@admin.register(Author)
+class AuthorAdmin(admin.ModelAdmin):
+    list_display = ['user', 'get_user_role']
+    search_fields = ['user__username']
+
+    def get_user_role(self, obj):
+        if hasattr(obj.user, "student"):
+            return obj.user.student.role
+        elif hasattr(obj.user, "author"):
+            return "Author"
+        return "No Role"
+
+    get_user_role.short_description = "Role"
 
 
 class AuthorAdminForm(forms.ModelForm):
@@ -54,36 +69,43 @@ class AuthorAdminForm(forms.ModelForm):
         fields = ['user']
 
     def save(self, commit=True):
+        for student in Student.objects.all():
+            student_id = student.id
+            user_id = student.user.id if student.user else "No associated user"
+            print(f"Student ID: {student_id}, User ID: {user_id}")
+
+
         student = self.cleaned_data['user']
 
         if not student.user:
             raise ValidationError("This student does not have an associated user.")
 
-        # Получаем username
-        username = student.user.username if student.user else "No Username"
-        print(f"Promoting student {username} to author.")  # Логируем имя пользователя
+        user = student.user
+        user_id = user.id
+        print(f"Selected Student's User ID: {user_id}")
 
-        # Обновляем роль студента
-        student.role = "author"
-        student.save()
+        try:
+            user.author
+            raise ValidationError("This user is already an author.")
+        except ObjectDoesNotExist:
+            pass
 
-        return super().save(commit=commit)
+        print(f"Promoting student with User ID {user_id} to author.")
 
 
-@admin.register(Author)
-class AuthorAdmin(admin.ModelAdmin):
-    form = AuthorAdminForm
-    list_display = ['user', 'get_user_role']
-    search_fields = ['user__username']
+        author = super().save(commit=False)
+        author.user = user
 
-    def get_user_role(self, obj):
-        if hasattr(obj.user, "student"):
-            return obj.user.student.role
-        elif hasattr(obj.user, "author"):
-            return "Author"
-        return "No Role"
+        author_group, created = Group.objects.get_or_create(name='Author')
+        user.groups.add(author_group)
+        user.save()
 
-    get_user_role.short_description = "Role"
+        if commit:
+            student.role = "author"
+            student.save()
+            author.save()
+
+        return author
 
 
 class LessonForm(forms.ModelForm):
@@ -117,24 +139,24 @@ class CourseAdminForm(forms.ModelForm):
 
 class LessonInline(nested_admin.NestedTabularInline):
     model = Lesson
-    extra = 1
+    extra = 0
     fields = ['name', 'short_description', 'video_url', 'uploaded_video']
     show_change_link = True
     classes = ['collapse']
 
-
 class ModuleInline(nested_admin.NestedTabularInline):
     model = Module
-    inlines = [LessonInline]
+    inlines = [LessonInline]  
     extra = 1
     fields = ['module', 'duration']
     show_change_link = True
-    classes = ['collapse']
+    classes = ['collapse', 'module-collapse']
+
 
 @admin.register(Course)
 class CourseAdmin(nested_admin.NestedModelAdmin):
     form = CourseAdminForm
-    inlines = [ModuleInline]
+    inlines = [ModuleInline]  # Add ModuleInline here
     list_display = ['title', 'level', 'author', 'duration', 'course_image']
     search_fields = ['title', 'author__user__username']
     list_filter = ['level']
@@ -142,6 +164,7 @@ class CourseAdmin(nested_admin.NestedModelAdmin):
     fieldsets = (
         (None, {'fields': ('title', 'level', 'author', 'duration', 'course_image', 'description')}),
     )
+
 
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
