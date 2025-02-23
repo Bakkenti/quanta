@@ -29,37 +29,32 @@ from .serializers import (
 from django.views.generic.edit import CreateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django import forms
+from dj_rest_auth.views import LoginView
 import logging
 from django.utils.functional import SimpleLazyObject
 
 logger = logging.getLogger(__name__)
 
+class CustomLoginView(LoginView):
+    def get(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return redirect('/')  # Перенаправляем на главную, если пользователь уже вошел
+        return Response({"detail": "Please log in using POST request."}, status=status.HTTP_200_OK)
 
+    def post(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return Response({"detail": "You are already authenticated."}, status=status.HTTP_400_BAD_REQUEST)
+        return super().post(request, *args, **kwargs)
 
 @method_decorator(csrf_exempt, name='dispatch')
-class Signin(LoginView):
-    def form_valid(self, form):
-        messages.success(self.request, f"✅ Welcome back, {self.request.user.username}!")
-        return super().form_valid(form)
-
-@method_decorator(csrf_exempt, name='dispatch')
-class Signup(SignupView):
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        user = self.user
-        student, created = Student.objects.get_or_create(user=user)
-        messages.success(self.request, f"🎉 Successfully registered as {user.email}")
-        return response
-
 class Logout(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request):
         django_logout(request)
         return Response({"message": "Successfully logged out."}, status=200)
 
     def get(self, request):
-        # Optional: Also logout on GET
         django_logout(request)
         return Response({"message": "Successfully logged out (GET)."}, status=200)
 
