@@ -63,10 +63,6 @@ class Profile(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQwMzQ0MjA0LCJpYXQiOjE3NDAzNDM5MDQsImp0aSI6IjY3YzBlMTlkZDVjYzQwZmZhYTUzZTNiMTY0ZTQwMGY0IiwidXNlcl9pZCI6MTl9.ye3988d0MDONOc7VASmimN_TcWU7t2K0RiMQOIyRtqI"
-
-        # Прикрепляем токен к мета-информации запроса
-        request.META['HTTP_AUTHORIZATION'] = f'Bearer {token}'
 
         user = request.user
 
@@ -362,29 +358,22 @@ class AuthorLessonListCreateView(APIView):
     renderer_classes = [BrowsableAPIRenderer, JSONRenderer]
 
     def get(self, request, course_id, module_id, *args, **kwargs):
-        # Получаем модуль по его id и course_id
         module = get_object_or_404(Module, module_id=module_id, course__id=course_id, course__author__user=request.user)
 
-        # Получаем все уроки для данного модуля
         lessons = Lesson.objects.filter(module=module)
 
-        # Сериализуем уроки и возвращаем их в ответе
         serializer = LessonSerializer(lessons, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request, course_id, module_id, *args, **kwargs):
-        # Получаем модуль по его id и course_id
         module = get_object_or_404(Module, module_id=module_id, course__id=course_id, course__author__user=request.user)
 
-        # Сериализуем входные данные для нового урока
         serializer = LessonSerializer(data=request.data)
 
-        # Если сериализатор валиден, сохраняем урок, связывая его с нужным модулем
         if serializer.is_valid():
-            lesson = serializer.save(module=module)  # Здесь передаем сам объект module
+            lesson = serializer.save(module=module)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        # Если сериализатор не валиден, возвращаем ошибку
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
