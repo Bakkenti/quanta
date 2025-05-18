@@ -157,12 +157,12 @@ class ModuleInline(nested_admin.NestedTabularInline):
 class CourseAdmin(nested_admin.NestedModelAdmin):
     form = CourseAdminForm
     inlines = [ModuleInline]  # Add ModuleInline here
-    list_display = ['title', 'level', 'author', 'duration', 'course_image']
+    list_display = ['title', 'author', 'category', 'level', 'duration', 'course_image']
     search_fields = ['title', 'author__user__username']
     list_filter = ['category', 'level']
     autocomplete_fields = ['author']
     fieldsets = (
-        (None, {'fields': ('title', 'level', 'author', 'duration', 'course_image', 'description')}),
+        (None, {'fields': ('title', 'author', 'category', 'level', 'duration', 'course_image', 'description')}),
     )
 
 

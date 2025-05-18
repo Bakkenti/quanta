@@ -66,15 +66,17 @@ class ProfileSerializer(serializers.ModelSerializer):
 
 class CourseSerializer(serializers.ModelSerializer):
     course_image = serializers.SerializerMethodField()
-    author_username = serializers.CharField(source="author.user.username", read_only=True)
+    author = serializers.CharField(source="author.user.username", read_only=True)
+    category = serializers.CharField(source='category.name', read_only=True)
 
     class Meta:
         model = Course
         fields = [
             'id',
             'title',
+            'category',
             'course_image',
-            'author_username',
+            'author',
             'description',
             'duration',
             'level'
