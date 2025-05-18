@@ -1,10 +1,16 @@
 import logging
 from django.db.models.signals import post_save, post_delete
+from django.contrib.auth.models import User
 from django.dispatch import receiver
 from allauth.account.signals import user_logged_in, user_signed_up
 from .models import Course, Review, Student, MostPopularCourse, BestCourse
 
 logger = logging.getLogger(__name__)
+
+@receiver(post_save, sender=User)
+def create_student_profile(sender, instance, created, **kwargs):
+    if created:
+        Student.objects.get_or_create(user=instance)
 
 @receiver(user_logged_in)
 def login_success(sender, request, user, **kwargs):
@@ -14,15 +20,12 @@ def login_success(sender, request, user, **kwargs):
 def signup_success(sender, request, user, **kwargs):
     logger.info(f"New user signed up: {user.email}")
 
-@receiver(post_save, sender=Course)
-@receiver(post_delete, sender=Course)
-@receiver(post_save, sender=Student)
-@receiver(post_delete, sender=Student)
+@receiver([post_save, post_delete], sender=Course)
+@receiver([post_save, post_delete], sender=Student)
 def update_most_popular_signal(sender, instance, **kwargs):
     MostPopularCourse.update_most_popular()
 
-@receiver(post_save, sender=Review)
-@receiver(post_delete, sender=Review)
+@receiver([post_save, post_delete], sender=Review)
 def update_best_course_signal(sender, instance, **kwargs):
     BestCourse.update_best_course()
 

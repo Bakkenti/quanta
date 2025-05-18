@@ -71,22 +71,27 @@ LOGIN_URL = '/login/'
 
 SITE_ID = 1
 
-ACCOUNT_USER_MODEL_USERNAME_FIELD = "username"
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_EMAIL_VERIFICATION = "none"
-ACCOUNT_LOGIN_METHODS = {"username"}
-ACCOUNT_ADAPTER = "allauth.account.adapter.DefaultAccountAdapter"
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  #console на smtp
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 465
+EMAIL_HOST_USER = 'qqqqquanta@gmail.com'
+EMAIL_HOST_PASSWORD = '123bahtiar'
 EMAIL_USE_SSL = True
-EMAIL_HOST_USER = 'baktiarlesov@gmail.com'
-EMAIL_HOST_PASSWORD = 'bcpz kdip nlsu kxxr'
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+DEFAULT_FROM_EMAIL = 'qqqqquanta@gmail.com'
+
+
+
+ACCOUNT_USER_MODEL_USERNAME_FIELD = "username"
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = "optional"
+ACCOUNT_LOGIN_METHODS = {"username"}
+ACCOUNT_ADAPTER = "myapp.adapters.MyAccountAdapter"
+
 
 ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = '/login/'
 ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = '/profile/'
+ACCOUNT_EMAIL_CONFIRMATION_URL = "https://jasulan273.github.io/Quanta/verify-email/?key={key}"
 LOGIN_REDIRECT_URL = "/profile/"
 
 AUTHENTICATION_BACKENDS = [
@@ -127,9 +132,10 @@ ROOT_URLCONF = 'edu_platform.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
+            'debug': True,
             'context_processors': [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
@@ -137,6 +143,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
             ],
         },
+
     },
 ]
 

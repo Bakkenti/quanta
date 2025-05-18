@@ -14,10 +14,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.decorators import api_view, permission_classes, renderer_classes
 from rest_framework_simplejwt.tokens import RefreshToken
-from allauth.account.views import LoginView, SignupView
 from .models import Course, Lesson, Student, Author, Review, Module, MostPopularCourse, BestCourse, Advertisement
 from .serializers import (
-    RegistrationSerializer,
     LoginSerializer,
     CourseSerializer,
     LessonSerializer,
@@ -38,7 +36,7 @@ logger = logging.getLogger(__name__)
 class CustomLoginView(LoginView):
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
-            return redirect('/')  # Перенаправляем на главную, если пользователь уже вошел
+            return redirect('/')
         return Response({"detail": "Please log in using POST request."}, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
