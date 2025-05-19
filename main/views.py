@@ -218,9 +218,9 @@ class CourseDetail(APIView):
 class LessonDetail(APIView):
     permission_classes = [AllowAny]
 
-    def get(self, request, id, lessonid):
-        course = get_object_or_404(Course, id=id)
-        lesson = get_object_or_404(Lesson, lesson_id=lessonid, module__course=course)
+    def get(self, request, course_id, module_id, lesson_id):
+        module = get_object_or_404(Module, course__id=course_id, module_id=module_id)
+        lesson = get_object_or_404(Lesson, module=module, lesson_id=lesson_id)
 
         lesson_data = {
             "id": lesson.lesson_id,
