@@ -28,10 +28,7 @@ class Comments(generics.ListAPIView):  #/?page=number
 class PostComments(generics.ListCreateAPIView):
     serializer_class = BlogCommentSerializer
 
-    def get_permissions(self):
-        if self.request.method == 'POST':
-            return [IsAuthenticated()]
-        return [AllowAny()]
+    permission_classes = [AllowAny]
 
     def get_queryset(self):
         post_pk = self.kwargs['pk']
@@ -46,12 +43,6 @@ class PostComments(generics.ListCreateAPIView):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         write_comment = {
-            "allowed": request.user.is_authenticated,
-            "message": (
-                "Login required to leave a comment"
-                if not request.user.is_authenticated else
-                "You can leave a comment"
-            ),
             "form_fields": {
                 "content": "string",
                 "parent": "optional id"
