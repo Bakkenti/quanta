@@ -68,12 +68,6 @@ class BlogComment(models.Model):
         on_delete=models.CASCADE,
         verbose_name='Пользователь'
     )
-    avatar = models.ImageField(
-        upload_to='comment_avatars/',
-        null=True,
-        blank=True,
-        verbose_name='Аватарка'
-    )
     content = models.TextField(
         verbose_name='Содержимое'
     )
