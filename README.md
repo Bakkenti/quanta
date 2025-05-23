@@ -289,10 +289,10 @@ docker-compose up --build -d
 
 ## 🛠 Roadmap
 
-* [x] Student progress tracking
-* [x] Course recommendations
-* [ ] Payment system for premium courses
-* [ ] Quizzes and assignments
+* [x] Student course & profile management
+* [x] Tasks in lessons (with compiler)
+* [ ] Multiple language interface
+* [ ] Quizzes and competitions
 
 ---
 
