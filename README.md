@@ -1,18 +1,25 @@
 ```markdown
 # QUANTA - Educational Platform
 
-QUANTA is an educational platform similar to Stepik, built with Django and React.
-It allows users to create, manage, and enroll in courses, whileproviding a CKEditor-powered admin panel for content editing.
+QUANTA is an educational platform inspired by Stepik, built with Django and React.  
+It allows users to create, manage, and enroll in courses, with a CKEditor-powered admin panel for content editing and a robust REST API for frontend integration.
 
-## Features
+---
 
-- 📚 **Course Management**: Create and edit courses with structured modules and lessons.
-- 🎥 **Video Support**: Upload videos or use external video links.
-- 📝 **Rich Text Editing**: CKEditor 5 integrated for content creation.
-- 🎓 **User Roles**: Students and authors with different permissions.
-- ⭐ **Reviews & Ratings**: Users can rate and review courses.
-- 📊 **Best & Popular Courses**: Automatic ranking based on enrollments and ratings.
-- ⚡ **React Admin Panel**: Teachers can manage content via a React-based admin interface.
+## 🚩 Features
+
+- 📚 **Course Management:** Create and edit courses with modules and lessons  
+- 🎥 **Video Support:** Upload videos or use external video links  
+- 📝 **Rich Text Editing:** CKEditor 5 integration for course and blog content  
+- 🎓 **User Roles:** Students and authors with different permissions  
+- ⭐ **Reviews & Ratings:** Students can rate and review courses  
+- 📊 **Popular & Best Courses:** Automatic ranking by enrollments and ratings  
+- 📰 **Blog Module:** Authors can post articles, users can comment  
+- 💬 **Comments System:** Threaded, with likes/dislikes  
+- ⚡ **React Admin Panel:** Teachers manage content via a modern UI  
+- 🔒 **JWT Auth & Social Login:** Secure access and easy onboarding (Google, GitHub, etc.)  
+- 🔔 **Email Confirmation:** With customizable templates (multi-language support)  
+- 🏆 **Featured Courses & Ads:** Highlight the best and monetize your platform  
 
 ---
 
@@ -70,18 +77,20 @@ DATABASE_PORT=""
 
 ```
 quanta/
-│── myapp/                 # Main Django app
-│   ├── models.py          # Database models
-│   ├── views.py           # Business logic
-│   ├── urls.py            # URL routing
-│   ├── templates/         # HTML templates
-│   ├── static/            # Static files (CSS, JS)
-│── media/                 # Uploaded files
-│── static/                # Collected static files
-│── manage.py              # Django management script
-│── requirements.txt       # Python dependencies
-│── .env                   # Environment variables
-│── README.md              # This file
+│── main/                 # Main Django app
+│   ├── models.py         # Database models
+│   ├── views.py          # Business logic
+│   ├── urls.py           # URL routing
+│   ├── serializers.py    # DRF serializers
+│   ├── templates/        # HTML templates (auth/email)
+│   ├── static/           # Static files (CSS, JS)
+│── blog/                 # Blog app
+│── media/                # Uploaded user files
+│── static/               # Collected static files
+│── manage.py             # Django management script
+│── requirements.txt      # Python dependencies
+│── .env                  # Environment variables
+│── README.md             # This file
 ```
 
 ---
@@ -91,14 +100,14 @@ quanta/
 ### 1. `Student`
 - One-to-one relation with Django's `User`
 - Stores role, avatar, about info, phone number, gender
-- Tracks enrolled courses
+- Tracks enrolled courses and favorite courses
 
 ### 2. `Author`
 - One-to-one relation with `User`
-- Can create and manage courses
+- Can create and manage courses & blog posts
 
 ### 3. `Course`
-- Has a title, description, duration, level, and author
+- Has a title, category, description, duration, level, and author
 - Linked to multiple `Module` instances
 
 ### 4. `Module`
@@ -141,69 +150,161 @@ Access it at `http://localhost:8000/`
 
 ## 📌 API Endpoints
 
-| Method | Endpoint | Description |
-|--------|---------|-------------|
-| `GET`  | `/courses/` | List all courses |
-| `GET`  | `/courses/<id>/` | Get course details |
-| `GET`  | `/courses/<id>/<id_lesson/` | List all lessons |
+### **Course Management**
 
-> Full API documentation available in `docs/`
+| Method | Endpoint                                                        | Description                               |
+| ------ | --------------------------------------------------------------- | ----------------------------------------- |
+| `GET`  | `/courses/`                                                     | List all courses                          |
+| `GET`  | `/courses/<id>/`                                                | Get course details                        |
+| `GET`  | `/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/` | Get lesson details                        |
+| `POST` | `/courses/<id>/`                                                | Leave a review (one per course, enrolled) |
+
+---
+
+### **Enrollment & Favorites**
+
+| Method | Endpoint                    | Description                              |
+| ------ | --------------------------- | ---------------------------------------- |
+| `POST` | `/courses/<id>/enroll/`     | Enroll in a course                       |
+| `POST` | `/courses/<id>/unenroll/`   | Unenroll from a course                   |
+| `POST` | `/courses/<id>/favorite/`   | Add a course to favorites                |
+| `POST` | `/courses/<id>/unfavorite/` | Remove a course from favorites           |
+| `GET`  | `/mycourses/`               | List courses you are enrolled in         |
+| `GET`  | `/favorites/`               | List courses you have marked as favorite |
+
+---
+
+### **Blog & Comments**
+
+| Method | Endpoint                     | Description                         |
+| ------ | ---------------------------- | ----------------------------------- |
+| `GET`  | `/blog/posts/`               | List blog posts                     |
+| `GET`  | `/blog/posts/<id>/`          | Blog post details                   |
+| `GET`  | `/blog/posts/<id>/comments/` | List comments for a post            |
+| `POST` | `/blog/posts/<id>/comments/` | Add a comment (auth required)       |
+| `POST` | `/blog/posts/<id>/comments/` | Reply to a comment (with parent ID) |
+
+---
+
+### **User/Account**
+
+| Method | Endpoint    | Description               |
+| ------ | ----------- | ------------------------- |
+| `GET`  | `/profile/` | View your profile         |
+| `POST` | `/login/`   | Login (returns JWT)       |
+| `POST` | `/logout/`  | Logout (JWT invalidation) |
+| `POST` | `/signup/`  | Register                  |
+
+---
+
+### **Other**
+
+| Method | Endpoint              | Description              |
+| ------ | --------------------- | ------------------------ |
+| `GET`  | `/mostpopularcourse/` | Show most popular course |
+| `GET`  | `/bestcourse/`        | Show best-rated course   |
+| `GET`  | `/advertisement/`     | Show advertisements      |
+
+---
+
+
+## ⭐️ Quick API Usage Examples
+
+#### Enroll in a course
+
+```http
+POST /courses/1/enroll/
+Authorization: Bearer <token>
+```
+
+#### Leave a review
+
+```http
+POST /courses/1/
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+  "rating": 5,
+  "feedback": "Awesome!"
+}
+```
+
+#### Post a blog comment
+
+```http
+POST /blog/posts/2/comments/
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+  "content": "Nice article!",
+  "parent": null
+}
+```
+
+#### Get your enrolled and favorite courses
+
+```http
+GET /mycourses/
+Authorization: Bearer <token>
+```
+
+```http
+GET /favorites/
+Authorization: Bearer <token>
+```
 
 ---
 
 ## 🚀 Deployment
 
-### Using Gunicorn + Nginx
-1. Install Gunicorn
-   ```sh
-   pip install gunicorn
-   ```
-2. Run Gunicorn server
-   ```sh
-   gunicorn --bind 0.0.0.0:8000 quanta.wsgi
-   ```
-3. Set up **Nginx** for reverse proxy (example config in `nginx.conf`)
+### Gunicorn + Nginx
 
-### Using Docker (Optional)
+```sh
+pip install gunicorn
+gunicorn --bind 0.0.0.0:8000 quanta.wsgi
+```
+
+Set up **Nginx** for reverse proxy (see `nginx.conf`).
+
+### Docker
+
 ```sh
 docker-compose up --build -d
 ```
 
 ---
 
-## 🔗 Technologies Used
+## 🔗 Technologies
 
-- **Backend**: Django 5, Django REST Framework
-- **Frontend**: React, TailwindCSS, CKEditor
-- **Database**: PostgreSQL 
-- **Authentication**: Django Auth, JWT (planned)
-- **Storage**: Local `media/`
-- **Deployment**: Docker, Nginx, Gunicorn
+* **Backend:** Django 5, Django REST Framework
+* **Frontend:** React, TailwindCSS, CKEditor 5
+* **Database:** PostgreSQL
+* **Auth:** Django Auth, JWT, allauth (social login)
+* **Media Storage:** Local `/media/`
+* **Deployment:** Docker, Nginx, Gunicorn
 
 ---
 
-## 🛠 Future Plans
+## 🛠 Roadmap
 
-- ✅ Improve student progress tracking  
-- ✅ Add course recommendations  
-- ⏳ Implement payment system for premium courses  
-- ⏳ Add quizzes and assignments  
+* [x] Student progress tracking
+* [x] Course recommendations
+* [ ] Payment system for premium courses
+* [ ] Quizzes and assignments
 
 ---
 
 ## 📝 License
 
-This project is licensed under the MIT License. See `LICENSE` for details.
+MIT — see `LICENSE` for details.
 
 ---
 
 ## 💬 Contact & Support
 
-For questions, suggestions, or contributions:
-
-- **Email**: baktiarlesov@example.com
-- **GitHub Issues**: [Open an issue](https://github.com/Bakkeni/quanta/issues)
-- **Discord**: Coming soon!
-
----
+* **Email:** [baktiarlesov@example.com](mailto:baktiarlesov@example.com)
+* **GitHub Issues:** [Open an issue](https://github.com/Bakkeni/quanta/issues)
+* **Discord:** Coming soon!
 ```
