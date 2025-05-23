@@ -1,7 +1,7 @@
 from rest_framework import generics
 from .models import BlogPost, BlogComment
 from .serializers import BlogPostSerializer, BlogCommentSerializer
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 

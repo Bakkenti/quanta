@@ -33,7 +33,7 @@ from django.utils.functional import SimpleLazyObject
 
 logger = logging.getLogger(__name__)
 
-class CustomLoginView(LoginView):
+class CustomLogin(LoginView):
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             return redirect('/')
@@ -233,7 +233,75 @@ class LessonDetail(APIView):
 
         return Response(lesson_data, status=status.HTTP_200_OK)
 
-class MostPopularCourseView(APIView):
+
+class EnrollCourse(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, course_id):
+        student = request.user.student
+        course = get_object_or_404(Course, id=course_id)
+        if course in student.enrolled_courses.all():
+            return Response({"detail": "You are already enrolled."}, status=status.HTTP_400_BAD_REQUEST)
+        student.enrolled_courses.add(course)
+        return Response({"detail": "Enrolled successfully."}, status=status.HTTP_200_OK)
+
+
+class UnenrollCourse(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, course_id):
+        student = request.user.student
+        course = get_object_or_404(Course, id=course_id)
+        if course not in student.enrolled_courses.all():
+            return Response({"detail": "You are not enrolled in this course."}, status=status.HTTP_400_BAD_REQUEST)
+        student.enrolled_courses.remove(course)
+        return Response({"detail": "Unenrolled successfully."}, status=status.HTTP_200_OK)
+
+
+class FavoriteCourse(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, course_id):
+        student = request.user.student
+        course = get_object_or_404(Course, id=course_id)
+        if course in student.favorite_courses.all():
+            return Response({"detail": "Already in favorites."}, status=status.HTTP_400_BAD_REQUEST)
+        student.favorite_courses.add(course)
+        return Response({"detail": "Added to favorites."}, status=status.HTTP_200_OK)
+
+
+class UnfavoriteCourse(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, course_id):
+        student = request.user.student
+        course = get_object_or_404(Course, id=course_id)
+        if course not in student.favorite_courses.all():
+            return Response({"detail": "Course not in favorites."}, status=status.HTTP_400_BAD_REQUEST)
+        student.favorite_courses.remove(course)
+        return Response({"detail": "Removed from favorites."}, status=status.HTTP_200_OK)
+
+
+class MyCourses(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        student = request.user.student
+        enrolled_courses = student.enrolled_courses.all()
+        serializer = CourseSerializer(enrolled_courses, many=True)
+        return Response(serializer.data)
+
+class Favorites(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        student = request.user.student
+        favorite_courses = student.favorite_courses.all()
+        serializer = CourseSerializer(favorite_courses, many=True)
+        return Response(serializer.data)
+
+
+class MostPopularCourse(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
@@ -245,7 +313,7 @@ class MostPopularCourseView(APIView):
         serializer = CourseSerializer(most_popular_entry.course, context={'request': request})
         return Response(serializer.data)
 
-class BestCourseView(APIView):
+class BestCourse(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
@@ -257,12 +325,13 @@ class BestCourseView(APIView):
         serializer = CourseSerializer(best_course_entry.course, context={'request': request})
         return Response(serializer.data)
 
-class AdvertisementView(generics.ListAPIView):
+class Advertisement(generics.ListAPIView):
     permission_classes = [AllowAny]
     queryset = Advertisement.objects.all().order_by("-created_at")
     serializer_class = AdvertisementSerializer
 
-class AuthorCourseListCreateView(APIView):
+
+class AuthorCourseListCreate(APIView):
     permission_classes = [IsAuthenticated]
     renderer_classes = [BrowsableAPIRenderer, JSONRenderer]
 
@@ -287,7 +356,7 @@ class AuthorCourseListCreateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class AuthorCourseEditView(APIView):
+class AuthorCourseEdit(APIView):
     permission_classes = [IsAuthenticated]
     renderer_classes = [BrowsableAPIRenderer, JSONRenderer]
 
@@ -309,7 +378,8 @@ class AuthorCourseEditView(APIView):
         course.delete()
         return Response({"message": "Course deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
 
-class AuthorModuleListCreateView(APIView):
+
+class AuthorModuleListCreate(APIView):
     permission_classes = [IsAuthenticated]
     renderer_classes = [BrowsableAPIRenderer, JSONRenderer]
 
@@ -328,7 +398,7 @@ class AuthorModuleListCreateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class AuthorModuleEditView(APIView):
+class AuthorModuleEdit(APIView):
     permission_classes = [IsAuthenticated]
     renderer_classes = [BrowsableAPIRenderer, JSONRenderer]
 
@@ -351,7 +421,7 @@ class AuthorModuleEditView(APIView):
         return Response({"message": "Module deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
 
 
-class AuthorLessonListCreateView(APIView):
+class AuthorLessonListCreate(APIView):
     permission_classes = [IsAuthenticated]
     renderer_classes = [BrowsableAPIRenderer, JSONRenderer]
 
@@ -375,7 +445,7 @@ class AuthorLessonListCreateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class AuthorLessonEditView(APIView):
+class AuthorLessonEdit(APIView):
     permission_classes = [IsAuthenticated]
     renderer_classes = [BrowsableAPIRenderer, JSONRenderer]
 
