@@ -6,6 +6,7 @@ from django.contrib.auth.models import Group, User
 from django.utils.translation import gettext_lazy as _
 from django.utils.html import format_html
 from .models import Author, Course, Module, Lesson, Student, Review, Advertisement, Category
+from exercises.models import Exercise, ExerciseOption, ExerciseSolution
 import nested_admin
 from django_ckeditor_5.fields import CKEditor5Field
 
@@ -139,6 +140,20 @@ class LessonForm(forms.ModelForm):
 
 LessonFormSet = inlineformset_factory(Module, Lesson, form=LessonForm, extra=1, can_delete=True)
 
+class ExerciseOptionInline(nested_admin.NestedTabularInline):
+    model = ExerciseOption
+    extra = 1
+
+class ExerciseSolutionInline(nested_admin.NestedStackedInline):
+    model = ExerciseSolution
+    extra = 0
+    max_num = 1
+
+class ExerciseInline(nested_admin.NestedStackedInline):
+    model = Exercise
+    extra = 0
+    inlines = [ExerciseOptionInline, ExerciseSolutionInline]
+
 class CourseAdminForm(forms.ModelForm):
     description = forms.CharField(
         widget=forms.Textarea(attrs={'rows': 6, 'cols': 60}),
@@ -180,7 +195,7 @@ class CourseAdmin(nested_admin.NestedModelAdmin):
 
 
 @admin.register(Lesson)
-class LessonAdmin(admin.ModelAdmin):
+class LessonAdmin(nested_admin.NestedModelAdmin):
     form = LessonForm
     list_display = ['name', 'module', 'get_video_display']
     search_fields = ['name', 'module__module']
@@ -188,6 +203,7 @@ class LessonAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {'fields': ('module', 'name', 'short_description', 'video_url', 'uploaded_video', 'content')}),
     )
+    inlines = [ExerciseInline]
 
     def get_video_display(self, obj):
         video_html = ""

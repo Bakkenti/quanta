@@ -1,0 +1,177 @@
+from rest_framework import generics, permissions
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from .models import Exercise, ExerciseOption, ExerciseSolution, ExerciseAttempt
+from .serializers import (
+    ExerciseSerializer, ExerciseOptionSerializer,
+    ExerciseSolutionSerializer, ExerciseAttemptSerializer
+)
+from main.models import Course, Lesson
+from rest_framework import status
+
+class ExerciseListCreate(generics.ListCreateAPIView):
+    queryset = Exercise.objects.all().order_by('id')
+    serializer_class = ExerciseSerializer
+
+    def get_queryset(self):
+        course_id = self.kwargs['course_id']
+        module_id = self.kwargs['module_id']
+        lesson_id = self.kwargs['lesson_id']
+
+        lesson = Lesson.objects.get(
+            module__course__id=course_id,
+            module__module_id=module_id,
+            lesson_id=lesson_id
+        )
+        return Exercise.objects.filter(lesson=lesson)
+
+
+class ExerciseDetail(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = ExerciseSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        course_id = self.kwargs['course_id']
+        module_id = self.kwargs['module_id']
+        lesson_id = self.kwargs['lesson_id']
+        return Exercise.objects.filter(
+            lesson__module__course__id=course_id,
+            lesson__module__module_id=module_id,
+            lesson__lesson_id=lesson_id
+        )
+
+class AllExercises(APIView):
+    def get(self, request):
+        courses = Course.objects.all()
+        result = []
+        for course in courses:
+            course_modules = []
+            modules = course.modules.all()
+            for module in modules:
+                module_lessons = []
+                lessons = module.lessons.all()
+                for lesson in lessons:
+                    exercises = lesson.exercises.all()
+                    if exercises.exists():
+                        lesson_data = {
+                            "lesson_id": lesson.lesson_id,
+                            "lesson": lesson.name,
+                            "exercises": [
+                                {
+                                    "id": exercise.id,
+                                    "type": exercise.type,
+                                    "title": exercise.title,
+                                    "description": exercise.description,
+                                }
+                                for exercise in exercises
+                            ]
+                        }
+                        module_lessons.append(lesson_data)
+                # добавляем только модули с уроками, в которых есть хотя бы одно задание
+                if module_lessons:
+                    module_data = {
+                        "module_id": module.module_id,
+                        "module": module.module,
+                        "lessons": module_lessons
+                    }
+                    course_modules.append(module_data)
+            # добавляем только курсы с модулями, где есть хотя бы один урок с заданием
+            if course_modules:
+                course_data = {
+                    "id": course.id,
+                    "course": course.title,
+                    "modules": course_modules
+                }
+                result.append(course_data)
+        return Response(result)
+
+class ExerciseOptionListCreate(generics.ListCreateAPIView):
+    serializer_class = ExerciseOptionSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        exercise_id = self.kwargs['exercise_id']
+        return ExerciseOption.objects.filter(exercise__id=exercise_id)
+
+    def perform_create(self, serializer):
+        exercise_id = self.kwargs['exercise_id']
+        exercise = Exercise.objects.get(id=exercise_id)
+        serializer.save(exercise=exercise)
+
+class ExerciseOptionDetail(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = ExerciseOptionSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        exercise_id = self.kwargs['exercise_id']
+        return ExerciseOption.objects.filter(exercise__id=exercise_id)
+
+class ExerciseAttemptListCreate(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, course_id, module_id, lesson_id, *args, **kwargs):
+        # request.data теперь это просто список объектов!
+        attempts_data = request.data
+        user = request.user
+        results = []
+        correct_count = 0
+
+        for attempt in attempts_data:
+            exercise_id = attempt.get("exercise_id")
+            selected_option = attempt.get("selected_option")
+
+            try:
+                exercise = Exercise.objects.get(
+                    id=exercise_id,
+                    lesson__lesson_id=lesson_id,
+                    lesson__module__module_id=module_id,
+                    lesson__module__course__id=course_id
+                )
+            except Exercise.DoesNotExist:
+                results.append({
+                    "exercise_id": exercise_id,
+                    "error": "Exercise does not exist"
+                })
+                continue
+
+            is_correct = False
+            if selected_option:
+                is_correct = exercise.options.filter(id=selected_option, is_correct=True).exists()
+
+            exercise_attempt = ExerciseAttempt.objects.create(
+                student=user.student,
+                exercise=exercise,
+                selected_option_id=selected_option,
+                is_correct=is_correct
+            )
+            results.append({
+                "exercise_id": exercise.id,
+                "attempt_id": exercise_attempt.id,
+                "is_correct": is_correct
+            })
+            if is_correct:
+                correct_count += 1
+
+        return Response({
+            "results": results,
+            "correct_count": correct_count,
+            "total": len(attempts_data)
+        }, status=status.HTTP_201_CREATED)
+
+
+class ExerciseAttemptDetail(generics.RetrieveAPIView):
+    serializer_class = ExerciseAttemptSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        course_id = self.kwargs['course_id']
+        module_id = self.kwargs['module_id']
+        lesson_id = self.kwargs['lesson_id']
+        exercise_id = self.kwargs['exercise_id']
+        return ExerciseAttempt.objects.filter(
+            exercise__id=exercise_id,
+            exercise__lesson__lesson_id=lesson_id,
+            exercise__lesson__module__module_id=module_id,
+            exercise__lesson__module__course__id=course_id,
+            student=self.request.user.student
+        )

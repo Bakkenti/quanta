@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'main',
     'blog',
+    'exercises',
     'rest_framework',
     'rest_framework_simplejwt',
     'whitenoise.runserver_nostatic',

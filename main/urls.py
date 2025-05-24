@@ -36,4 +36,5 @@ urlpatterns = [
     path('mostpopularcourse/', MostPopularCourse.as_view(), name='most_popular_course'),
     path('bestcourse/', BestCourse.as_view(), name='best_course'),
     path('advertisement/', Advertisement.as_view(), name='advertisement'),
+
 ]
