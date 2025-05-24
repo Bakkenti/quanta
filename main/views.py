@@ -58,14 +58,9 @@ class Logout(APIView):
 
 
 class Profile(APIView):
-    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
-
-        if user.is_anonymous:
-            return Response({"detail": "Authentication credentials were not provided."},
-                            status=status.HTTP_401_UNAUTHORIZED)
 
         try:
             student = user.student
