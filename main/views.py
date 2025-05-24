@@ -61,16 +61,26 @@ class Profile(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-
         user = request.user
 
         if user.is_anonymous:
             return Response({"detail": "Authentication credentials were not provided."},
                             status=status.HTTP_401_UNAUTHORIZED)
 
+        try:
+            student = user.student
+        except Student.DoesNotExist:
+            return Response({"detail": "Student profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
         return Response({
             "username": user.username,
-            "email": user.email
+            "email": user.email,
+            "avatar": student.avatar.url if student.avatar else None,
+            "role": student.role,
+            "about": student.about,
+            "birthday": student.birthday,
+            "gender": student.gender,
+            "phone_number": student.phone_number
         })
 
 
@@ -257,31 +267,6 @@ class UnenrollCourse(APIView):
         student.enrolled_courses.remove(course)
         return Response({"detail": "Unenrolled successfully."}, status=status.HTTP_200_OK)
 
-
-class FavoriteCourse(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, course_id):
-        student = request.user.student
-        course = get_object_or_404(Course, id=course_id)
-        if course in student.favorite_courses.all():
-            return Response({"detail": "Already in favorites."}, status=status.HTTP_400_BAD_REQUEST)
-        student.favorite_courses.add(course)
-        return Response({"detail": "Added to favorites."}, status=status.HTTP_200_OK)
-
-
-class UnfavoriteCourse(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, course_id):
-        student = request.user.student
-        course = get_object_or_404(Course, id=course_id)
-        if course not in student.favorite_courses.all():
-            return Response({"detail": "Course not in favorites."}, status=status.HTTP_400_BAD_REQUEST)
-        student.favorite_courses.remove(course)
-        return Response({"detail": "Removed from favorites."}, status=status.HTTP_200_OK)
-
-
 class MyCourses(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -290,16 +275,6 @@ class MyCourses(APIView):
         enrolled_courses = student.enrolled_courses.all()
         serializer = CourseSerializer(enrolled_courses, many=True)
         return Response(serializer.data)
-
-class Favorites(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        student = request.user.student
-        favorite_courses = student.favorite_courses.all()
-        serializer = CourseSerializer(favorite_courses, many=True)
-        return Response(serializer.data)
-
 
 class MostPopularCourse(APIView):
     permission_classes = [AllowAny]

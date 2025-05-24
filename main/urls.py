@@ -13,8 +13,7 @@ from .views import (
     Advertisement,
     AuthorCourseListCreate, AuthorCourseEdit,
     AuthorModuleListCreate, AuthorModuleEdit,
-    AuthorLessonListCreate, AuthorLessonEdit, CustomLogin, EnrollCourse, UnenrollCourse,
-    FavoriteCourse, UnfavoriteCourse, MyCourses, Favorites
+    AuthorLessonListCreate, AuthorLessonEdit, CustomLogin, EnrollCourse, UnenrollCourse, MyCourses
 )
 
 urlpatterns = [
@@ -27,10 +26,7 @@ urlpatterns = [
     path('courses/<int:id>/', CourseDetail.as_view(), name='course_detail'),
     path('courses/<int:course_id>/enroll/', EnrollCourse.as_view(), name='enroll-course'),
     path('courses/<int:course_id>/unenroll/', UnenrollCourse.as_view(), name='unenroll-course'),
-    path('courses/<int:course_id>/favorite/', FavoriteCourse.as_view(), name='favorite-course'),
-    path('courses/<int:course_id>/unfavorite/', UnfavoriteCourse.as_view(), name='unfavorite-course'),
     path('mycourses/', MyCourses.as_view(), name='my-courses'),
-    path('favorites/', Favorites.as_view(), name='favorite-courses'),
     path('author/courses/', AuthorCourseListCreate.as_view(), name='author_course_list_create'),
     path('author/course/<int:course_id>/', AuthorCourseEdit.as_view(), name='author_course_edit'),
     path('author/course/<int:course_id>/modules/', AuthorModuleListCreate.as_view(), name='author_module_list_create'),

@@ -100,7 +100,7 @@ quanta/
 ### 1. `Student`
 - One-to-one relation with Django's `User`
 - Stores role, avatar, about info, phone number, gender
-- Tracks enrolled courses and favorite courses
+- Tracks enrolled courses 
 
 ### 2. `Author`
 - One-to-one relation with `User`
@@ -161,16 +161,13 @@ Access it at `http://localhost:8000/`
 
 ---
 
-### **Enrollment & Favorites**
+### **Enrollment**
 
 | Method | Endpoint                    | Description                              |
 | ------ | --------------------------- | ---------------------------------------- |
 | `POST` | `/courses/<id>/enroll/`     | Enroll in a course                       |
 | `POST` | `/courses/<id>/unenroll/`   | Unenroll from a course                   |
-| `POST` | `/courses/<id>/favorite/`   | Add a course to favorites                |
-| `POST` | `/courses/<id>/unfavorite/` | Remove a course from favorites           |
 | `GET`  | `/mycourses/`               | List courses you are enrolled in         |
-| `GET`  | `/favorites/`               | List courses you have marked as favorite |
 
 ---
 
@@ -243,15 +240,10 @@ Authorization: Bearer <token>
 }
 ```
 
-#### Get your enrolled and favorite courses
+#### Get your enrolled courses
 
 ```http
 GET /mycourses/
-Authorization: Bearer <token>
-```
-
-```http
-GET /favorites/
 Authorization: Bearer <token>
 ```
 

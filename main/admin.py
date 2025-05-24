@@ -41,11 +41,54 @@ class StudentAdmin(admin.ModelAdmin):
     get_username.short_description = 'Username'
 
 
+class AuthorAdminForm(forms.ModelForm):
+    # Выбираем всех пользователей, которые имеют профиль студента и еще не являются авторами
+    user = forms.ModelChoiceField(
+        queryset=User.objects.filter(student__isnull=False, author__isnull=True),
+        label="Select Student to Promote",
+        required=True
+    )
+
+    class Meta:
+        model = Author
+        fields = ['user']
+
+    def clean_user(self):
+        # Сюда попадёт именно User, а не Student!
+        user = self.cleaned_data['user']
+        # Прямая проверка: если у юзера уже есть связанный author, то нельзя повышать.
+        if hasattr(user, 'author'):
+            raise ValidationError("This user is already an author.")
+        return user
+
+    def save(self, commit=True):
+        user = self.cleaned_data['user']
+        # Создаём автора (Author.user = user)
+        author = super().save(commit=False)
+        author.user = user
+
+        # Добавляем в группу "Author"
+        author_group, created = Group.objects.get_or_create(name='Author')
+        user.groups.add(author_group)
+        user.save()
+
+        # Промоутим роль у студента
+        try:
+            student = user.student
+            student.role = "author"
+            student.save()
+        except Student.DoesNotExist:
+            pass
+
+        if commit:
+            author.save()
+        return author
 
 @admin.register(Author)
 class AuthorAdmin(admin.ModelAdmin):
     list_display = ['user', 'get_user_role']
     search_fields = ['user__username']
+    form = AuthorAdminForm
 
     def get_user_role(self, obj):
         if hasattr(obj.user, "student"):
@@ -56,56 +99,26 @@ class AuthorAdmin(admin.ModelAdmin):
 
     get_user_role.short_description = "Role"
 
-
-class AuthorAdminForm(forms.ModelForm):
-    user = forms.ModelChoiceField(
-        queryset=Student.objects.all(),
-        label="Select Student to Promote",
-        required=True
-    )
-
-    class Meta:
-        model = Author
-        fields = ['user']
-
-    def save(self, commit=True):
-        for student in Student.objects.all():
-            student_id = student.id
-            user_id = student.user.id if student.user else "No associated user"
-            print(f"Student ID: {student_id}, User ID: {user_id}")
-
-
-        student = self.cleaned_data['user']
-
-        if not student.user:
-            raise ValidationError("This student does not have an associated user.")
-
-        user = student.user
-        user_id = user.id
-        print(f"Selected Student's User ID: {user_id}")
-
+    def delete_model(self, request, obj):
+        user = obj.user
         try:
-            user.author
-            raise ValidationError("This user is already an author.")
-        except ObjectDoesNotExist:
-            pass
-
-        print(f"Promoting student with User ID {user_id} to author.")
-
-
-        author = super().save(commit=False)
-        author.user = user
-
-        author_group, created = Group.objects.get_or_create(name='Author')
-        user.groups.add(author_group)
-        user.save()
-
-        if commit:
-            student.role = "author"
+            student = user.student
+            student.role = "student"
             student.save()
-            author.save()
+        except Student.DoesNotExist:
+            pass
+        super().delete_model(request, obj)
 
-        return author
+    def delete_queryset(self, request, queryset):
+        for obj in queryset:
+            user = obj.user
+            try:
+                student = user.student
+                student.role = "student"
+                student.save()
+            except Student.DoesNotExist:
+                pass
+        super().delete_queryset(request, queryset)
 
 
 class LessonForm(forms.ModelForm):

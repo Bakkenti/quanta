@@ -41,7 +41,6 @@ class Student(models.Model):
     gender_choices = [("M", "Male"), ("F", "Female"), ("O", "Other")]
     gender = models.CharField(choices=gender_choices, null=True, max_length=1, blank=True)
     enrolled_courses = models.ManyToManyField("Course", blank=True, related_name="students")
-    favorite_courses = models.ManyToManyField("Course", blank=True, related_name="favorited_by")
 
     def set_password(self, raw_password):
         if self.user:
