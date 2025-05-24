@@ -28,7 +28,6 @@ class ExerciseListCreate(generics.ListCreateAPIView):
 
 class ExerciseDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ExerciseSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
         course_id = self.kwargs['course_id']
@@ -67,7 +66,6 @@ class AllExercises(APIView):
                             ]
                         }
                         module_lessons.append(lesson_data)
-                # добавляем только модули с уроками, в которых есть хотя бы одно задание
                 if module_lessons:
                     module_data = {
                         "module_id": module.module_id,
@@ -75,7 +73,6 @@ class AllExercises(APIView):
                         "lessons": module_lessons
                     }
                     course_modules.append(module_data)
-            # добавляем только курсы с модулями, где есть хотя бы один урок с заданием
             if course_modules:
                 course_data = {
                     "id": course.id,
