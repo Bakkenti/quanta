@@ -253,7 +253,6 @@ class LessonDetail(APIView):
 
 
 class EnrollCourse(APIView):
-    permission_classes = [IsAuthenticated]
 
     def post(self, request, course_id):
         student = request.user.student
@@ -265,7 +264,6 @@ class EnrollCourse(APIView):
 
 
 class UnenrollCourse(APIView):
-    permission_classes = [IsAuthenticated]
 
     def post(self, request, course_id):
         student = request.user.student
@@ -276,7 +274,6 @@ class UnenrollCourse(APIView):
         return Response({"detail": "Unenrolled successfully."}, status=status.HTTP_200_OK)
 
 class MyCourses(APIView):
-    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         student = request.user.student
@@ -315,7 +312,6 @@ class Advertisement(generics.ListAPIView):
 
 
 class AuthorCourseListCreate(APIView):
-    permission_classes = [IsAuthenticated]
     renderer_classes = [BrowsableAPIRenderer, JSONRenderer]
 
     def get(self, request, *args, **kwargs):
@@ -340,7 +336,6 @@ class AuthorCourseListCreate(APIView):
 
 
 class AuthorCourseEdit(APIView):
-    permission_classes = [IsAuthenticated]
     renderer_classes = [BrowsableAPIRenderer, JSONRenderer]
 
     def get(self, request, course_id, *args, **kwargs):
