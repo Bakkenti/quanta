@@ -38,8 +38,8 @@ class Student(models.Model):
     about = models.TextField(max_length=500, null=True, blank=True, default="")
     birthday = models.DateField(null=True, blank=True)
     phone_number = models.CharField(max_length=15, validators=[validate_phone_number], null=True, blank=True)
-    gender_choices = [("M", "Male"), ("F", "Female"), ("O", "Other")]
-    gender = models.CharField(choices=gender_choices, null=True, max_length=1, blank=True)
+    gender_choices = [("Male", "Male"), ("Female", "Female"), ("Other", "Other")]
+    gender = models.CharField(choices=gender_choices, null=True, max_length=10, blank=True)
     enrolled_courses = models.ManyToManyField("Course", blank=True, related_name="students")
 
     def set_password(self, raw_password):

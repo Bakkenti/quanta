@@ -87,7 +87,6 @@ class AllExercises(APIView):
 
 class ExerciseOptionListCreate(generics.ListCreateAPIView):
     serializer_class = ExerciseOptionSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
         exercise_id = self.kwargs['exercise_id']
@@ -100,14 +99,12 @@ class ExerciseOptionListCreate(generics.ListCreateAPIView):
 
 class ExerciseOptionDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ExerciseOptionSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
         exercise_id = self.kwargs['exercise_id']
         return ExerciseOption.objects.filter(exercise__id=exercise_id)
 
 class ExerciseAttemptListCreate(APIView):
-    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, course_id, module_id, lesson_id, *args, **kwargs):
         attempts_data = request.data if isinstance(request.data, list) else request.data.get("attempts", [])
@@ -130,7 +127,6 @@ class ExerciseAttemptListCreate(APIView):
             except Exercise.DoesNotExist:
                 continue
 
-            # Для задания с компилятором:
             is_correct = False
             if exercise.type == "quiz" and selected_option:
                 is_correct = exercise.options.filter(id=selected_option, is_correct=True).exists()
@@ -141,7 +137,6 @@ class ExerciseAttemptListCreate(APIView):
                     is_correct=is_correct
                 )
             elif exercise.type == "code" and submitted_output is not None:
-                # Точное сравнение ожидаемого вывода и отправленного:
                 correct_output = exercise.solution.expected_output.strip()
                 submitted = (submitted_output or "").strip()
                 is_correct = correct_output == submitted
@@ -168,7 +163,6 @@ class ExerciseAttemptListCreate(APIView):
 
 class ExerciseAttemptDetail(generics.RetrieveAPIView):
     serializer_class = ExerciseAttemptSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         course_id = self.kwargs['course_id']
