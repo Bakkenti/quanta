@@ -12,7 +12,7 @@ class ExerciseSolutionInline(admin.StackedInline):
 
 @admin.register(Exercise)
 class ExerciseAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'lesson', 'type',)
+    list_display = ('id', 'title', 'lesson', 'type', 'language')
     list_filter = ('type', 'lesson')
     search_fields = ('title', 'lesson__name')
     ordering = ('lesson', 'id')

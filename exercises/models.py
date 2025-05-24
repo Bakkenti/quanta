@@ -1,5 +1,7 @@
 from django.db import models
-from main.models import Lesson, Student
+from main.models import Lesson, Student, ProgrammingLanguage
+
+
 
 class Exercise(models.Model):
     EXERCISE_TYPE_CHOICES = [
@@ -15,9 +17,21 @@ class Exercise(models.Model):
     )
     title = models.CharField(max_length=255, verbose_name="Title or Question")
     description = models.TextField(blank=True, null=True, verbose_name="Description (optional)")
+    language = models.ForeignKey(
+        ProgrammingLanguage,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="exercises"
+    )
+    def save(self, *args, **kwargs):
+        if not self.language and self.lesson and self.lesson.module and self.lesson.module.course:
+            self.language = self.lesson.module.course.language
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.get_type_display()}: {self.title}"
+
 
 class ExerciseOption(models.Model):
     exercise = models.ForeignKey(

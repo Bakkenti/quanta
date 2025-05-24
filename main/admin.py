@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.contrib.auth.models import Group, User
 from django.utils.translation import gettext_lazy as _
 from django.utils.html import format_html
-from .models import Author, Course, Module, Lesson, Student, Review, Advertisement, Category
+from .models import Author, Course, Module, Lesson, Student, Review, Advertisement, Category, ProgrammingLanguage
 from exercises.models import Exercise, ExerciseOption, ExerciseSolution
 import nested_admin
 from django_ckeditor_5.fields import CKEditor5Field
@@ -41,6 +41,9 @@ class StudentAdmin(admin.ModelAdmin):
 
     get_username.short_description = 'Username'
 
+@admin.register(ProgrammingLanguage)
+class ProgrammingLanguageAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name')
 
 class AuthorAdminForm(forms.ModelForm):
     # Выбираем всех пользователей, которые имеют профиль студента и еще не являются авторами
@@ -185,12 +188,12 @@ class ModuleInline(nested_admin.NestedTabularInline):
 class CourseAdmin(nested_admin.NestedModelAdmin):
     form = CourseAdminForm
     inlines = [ModuleInline]  # Add ModuleInline here
-    list_display = ['title', 'author', 'category', 'level', 'duration', 'course_image']
+    list_display = ['title', 'author', 'category', 'level', 'duration', 'course_image', 'language']
     search_fields = ['title', 'author__user__username']
     list_filter = ['category', 'level']
     autocomplete_fields = ['author']
     fieldsets = (
-        (None, {'fields': ('title', 'author', 'category', 'level', 'duration', 'course_image', 'description')}),
+        (None, {'fields': ('title', 'author', 'language', 'category', 'level', 'duration', 'course_image', 'description')}),
     )
 
 

@@ -84,7 +84,6 @@ class Profile(APIView):
         })
 
 class ProfileEdit(APIView):
-    permission_classes = [IsAuthenticated]
 
     def patch(self, request):
         user = request.user

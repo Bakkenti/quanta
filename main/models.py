@@ -82,6 +82,12 @@ class Category(models.Model):
     def __str__(self):
         return self.name
 
+class ProgrammingLanguage(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+
+    def __str__(self):
+        return self.name
+
 
 class Course(models.Model):
     title = models.CharField(max_length=200)
@@ -98,6 +104,13 @@ class Course(models.Model):
     level = models.CharField(max_length=50, choices=LEVEL_CHOICES, default="all")
     course_image = models.ImageField(upload_to="course_images/", null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    language = models.ForeignKey(
+        ProgrammingLanguage,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="courses"
+    )
 
     def __str__(self):
         return self.title

@@ -8,6 +8,7 @@ from .serializers import (
 )
 from main.models import Course, Lesson
 from rest_framework import status
+from exercises.ai_helper import get_code_hint
 
 class ExerciseListCreate(generics.ListCreateAPIView):
     queryset = Exercise.objects.all().order_by('id')
@@ -102,18 +103,23 @@ class ExerciseOptionDetail(generics.RetrieveUpdateDestroyAPIView):
         return ExerciseOption.objects.filter(exercise__id=exercise_id)
 
 class ExerciseAttemptListCreate(APIView):
-
     def post(self, request, course_id, module_id, lesson_id, *args, **kwargs):
         attempts_data = request.data if isinstance(request.data, list) else request.data.get("attempts", [])
         user = request.user
         results = []
         correct_count = 0
 
+        # Получаем язык курса (если надо для запроса подсказки)
+        course = Course.objects.get(id=course_id)
+        prompt_language = getattr(course.language, "code", None) if hasattr(course, "language") else None
+
         for attempt in attempts_data:
             exercise_id = attempt.get("exercise_id")
             selected_option = attempt.get("selected_option")
             submitted_code = attempt.get("submitted_code")
             submitted_output = attempt.get("submitted_output")
+            request_hint = attempt.get("request_hint", False)  # Флаг запроса подсказки
+
             try:
                 exercise = Exercise.objects.get(
                     id=exercise_id,
@@ -125,6 +131,8 @@ class ExerciseAttemptListCreate(APIView):
                 continue
 
             is_correct = False
+            hint = None
+
             if exercise.type == "quiz" and selected_option:
                 is_correct = exercise.options.filter(id=selected_option, is_correct=True).exists()
                 ExerciseAttempt.objects.create(
@@ -144,9 +152,18 @@ class ExerciseAttemptListCreate(APIView):
                     submitted_output=submitted_output,
                     is_correct=is_correct
                 )
+                # AI-подсказка только для неправильного ответа, если фронт запросил
+                if not is_correct and request_hint:
+                    hint = get_code_hint(
+                        student_code=submitted_code,
+                        student_output=submitted_output,
+                        expected_output=correct_output,
+                        prompt_language=prompt_language
+                    )
             results.append({
                 "exercise_id": exercise.id,
-                "is_correct": is_correct
+                "is_correct": is_correct,
+                "hint": hint,
             })
             if is_correct:
                 correct_count += 1
@@ -156,6 +173,7 @@ class ExerciseAttemptListCreate(APIView):
             "correct_count": correct_count,
             "total": len(attempts_data)
         }, status=status.HTTP_201_CREATED)
+
 
 
 class ExerciseAttemptDetail(generics.RetrieveAPIView):
