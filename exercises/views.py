@@ -110,8 +110,7 @@ class ExerciseAttemptListCreate(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, course_id, module_id, lesson_id, *args, **kwargs):
-        # request.data теперь это просто список объектов!
-        attempts_data = request.data
+        attempts_data = request.data if isinstance(request.data, list) else request.data.get("attempts", [])
         user = request.user
         results = []
         correct_count = 0
@@ -119,7 +118,8 @@ class ExerciseAttemptListCreate(APIView):
         for attempt in attempts_data:
             exercise_id = attempt.get("exercise_id")
             selected_option = attempt.get("selected_option")
-
+            submitted_code = attempt.get("submitted_code")
+            submitted_output = attempt.get("submitted_output")
             try:
                 exercise = Exercise.objects.get(
                     id=exercise_id,
@@ -128,25 +128,32 @@ class ExerciseAttemptListCreate(APIView):
                     lesson__module__course__id=course_id
                 )
             except Exercise.DoesNotExist:
-                results.append({
-                    "exercise_id": exercise_id,
-                    "error": "Exercise does not exist"
-                })
                 continue
 
+            # Для задания с компилятором:
             is_correct = False
-            if selected_option:
+            if exercise.type == "quiz" and selected_option:
                 is_correct = exercise.options.filter(id=selected_option, is_correct=True).exists()
-
-            exercise_attempt = ExerciseAttempt.objects.create(
-                student=user.student,
-                exercise=exercise,
-                selected_option_id=selected_option,
-                is_correct=is_correct
-            )
+                ExerciseAttempt.objects.create(
+                    student=user.student,
+                    exercise=exercise,
+                    selected_option_id=selected_option,
+                    is_correct=is_correct
+                )
+            elif exercise.type == "code" and submitted_output is not None:
+                # Точное сравнение ожидаемого вывода и отправленного:
+                correct_output = exercise.solution.expected_output.strip()
+                submitted = (submitted_output or "").strip()
+                is_correct = correct_output == submitted
+                ExerciseAttempt.objects.create(
+                    student=user.student,
+                    exercise=exercise,
+                    submitted_code=submitted_code,
+                    submitted_output=submitted_output,
+                    is_correct=is_correct
+                )
             results.append({
                 "exercise_id": exercise.id,
-                "attempt_id": exercise_attempt.id,
                 "is_correct": is_correct
             })
             if is_correct:

@@ -55,11 +55,10 @@ class LoginSerializer(serializers.Serializer):
 
 
 class ProfileSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(source='user.username', read_only=True)
 
     class Meta:
         model = Student
-        fields = ['id', 'username', 'email', 'role', 'avatar', 'about', 'birthday', 'phone_number', 'gender']
+        fields = ['role', 'avatar', 'about', 'birthday', 'phone_number', 'gender']
 
 
 

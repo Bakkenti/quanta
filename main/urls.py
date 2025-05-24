@@ -13,7 +13,7 @@ from .views import (
     Advertisement,
     AuthorCourseListCreate, AuthorCourseEdit,
     AuthorModuleListCreate, AuthorModuleEdit,
-    AuthorLessonListCreate, AuthorLessonEdit, CustomLogin, EnrollCourse, UnenrollCourse, MyCourses
+    AuthorLessonListCreate, AuthorLessonEdit, CustomLogin, EnrollCourse, UnenrollCourse, MyCourses, ProfileEdit
 )
 
 urlpatterns = [
@@ -21,6 +21,7 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name='rest_logout'),
     path('signup/', include('dj_rest_auth.registration.urls')),
     path('profile/', Profile.as_view(), name='profile'),
+    path('profile/edit/', ProfileEdit.as_view(), name='profile-edit'),
     path('courses/<int:course_id>/modules/<int:module_id>/lessons/<int:lesson_id>/', LessonDetail.as_view(), name='lesson_detail'),
     path('courses/', CourseList.as_view(), name='course_list'),
     path('courses/<int:id>/', CourseDetail.as_view(), name='course_detail'),
