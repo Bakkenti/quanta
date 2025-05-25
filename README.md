@@ -1,5 +1,5 @@
 # QUANTA - Educational Platform
-![Quanta Logo](media/logo.jpg)
+![Quanta Logo](media/logo.png)
 
 QUANTA is an educational platform inspired by Stepik, built with Django and React.  
 It allows users to create, manage, and enroll in courses, with a CKEditor-powered admin panel for content editing and a robust REST API for frontend integration.
