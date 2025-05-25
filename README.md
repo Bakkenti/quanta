@@ -1,5 +1,5 @@
-```markdown
 # QUANTA - Educational Platform
+![Quanta Logo](media/logo.jpg)
 
 QUANTA is an educational platform inspired by Stepik, built with Django and React.  
 It allows users to create, manage, and enroll in courses, with a CKEditor-powered admin panel for content editing and a robust REST API for frontend integration.
@@ -77,20 +77,35 @@ DATABASE_PORT=""
 
 ```
 quanta/
-│── main/                 # Main Django app
-│   ├── models.py         # Database models
-│   ├── views.py          # Business logic
-│   ├── urls.py           # URL routing
-│   ├── serializers.py    # DRF serializers
-│   ├── templates/        # HTML templates (auth/email)
-│   ├── static/           # Static files (CSS, JS)
-│── blog/                 # Blog app
-│── media/                # Uploaded user files
-│── static/               # Collected static files
-│── manage.py             # Django management script
-│── requirements.txt      # Python dependencies
-│── .env                  # Environment variables
-│── README.md             # This file
+│
+├── main/ # Main Django app (models, views, API, admin, etc.)
+│ ├── admin.py
+│ ├── models.py
+│ ├── serializers.py
+│ ├── urls.py
+│ ├── views.py
+│
+├── exercises/ # Exercises app (assignments, AI helper, etc.)
+│ ├── admin.py
+│ ├── ai_helper.py
+│ ├── models.py
+│ ├── serializers.py
+│ ├── urls.py
+│ ├── views.py
+│
+├── blog/ # Blog module (posts, comments)
+│ ├── admin.py
+│ ├── models.py
+│ ├── serializers.py
+│ ├── urls.py
+│ ├── views.py
+│
+├── media/ # Uploaded user files (avatars, images, videos)
+│
+├── requirements.txt # Python dependencies
+├── .env # Environment variables
+├── manage.py # Django management script
+└── 
 ```
 
 ---
@@ -290,7 +305,7 @@ docker-compose up --build -d
 
 ## 📝 License
 
-MIT — see `LICENSE` for details.
+MIT — see [LICENSE](LICENSE) for details.
 
 ---
 
@@ -299,4 +314,3 @@ MIT — see `LICENSE` for details.
 * **Email:** [baktiarlesov@example.com](mailto:baktiarlesov@example.com)
 * **GitHub Issues:** [Open an issue](https://github.com/Bakkeni/quanta/issues)
 * **Discord:** Coming soon!
-```
