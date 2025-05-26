@@ -75,6 +75,7 @@ class CourseSerializer(serializers.ModelSerializer):
     author = serializers.CharField(source="author.user.username", read_only=True)
     category = serializers.CharField(source='category.name', read_only=True)
     students = serializers.SerializerMethodField()
+    language = serializers.CharField(source='language.name', read_only=True)
 
     class Meta:
         model = Course
@@ -82,6 +83,7 @@ class CourseSerializer(serializers.ModelSerializer):
             'id',
             'title',
             'category',
+            'language',
             'course_image',
             'author',
             'description',
