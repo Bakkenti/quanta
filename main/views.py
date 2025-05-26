@@ -145,7 +145,7 @@ class CourseDetail(APIView):
                 "course_image": course.course_image.url if course.course_image else None,
                 "duration": course.duration,
                 "level": course.level,
-                "students": course.student_count
+                "students": course.students_count
             }
 
             modules = course.modules.all()
