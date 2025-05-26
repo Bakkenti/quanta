@@ -243,7 +243,7 @@ class BestCourse(models.Model):
 class Advertisement(models.Model):
     name = models.CharField(max_length=255)
     content = CKEditor5Field(config_name='default', blank=True, null=True)
-    image = models.ImageField(upload_to="media/", null=True, blank=True)
+    image = models.ImageField(upload_to="images/", null=True, blank=True)
     url = models.URLField(blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)

@@ -206,7 +206,7 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 
-MEDIA_FOLDERS = ["avatars", "course_images", "lesson_videos"]
+MEDIA_FOLDERS = ["avatars", "course_images", "lesson_videos", "blog_images", "images"]
 
 for folder in MEDIA_FOLDERS:
     path = os.path.join(MEDIA_ROOT, folder)
