@@ -9,7 +9,7 @@ class BlogPostSerializer(serializers.ModelSerializer):
         model = BlogPost
         fields = [
             'id', 'author_username', 'title', 'content',
-            'created_at', 'updated_at', 'published', 'image'
+            'created_at', 'updated_at', 'published', 'image', 'views'
         ]
 
 class BlogCommentSerializer(serializers.ModelSerializer):

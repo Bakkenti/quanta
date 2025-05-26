@@ -8,18 +8,18 @@ from .views import (
     CourseList,
     CourseDetail,
     LessonDetail,
-    MostPopularCourse,
-    BestCourse,
+    MostPopularCourseView,
+    BestCourseView,
     Advertisement,
     AuthorCourseListCreate, AuthorCourseEdit,
     AuthorModuleListCreate, AuthorModuleEdit,
-    AuthorLessonListCreate, AuthorLessonEdit, CustomLogin, EnrollCourse, UnenrollCourse, MyCourses, ProfileEdit
+    AuthorLessonListCreate, AuthorLessonEdit, Registration, Login, EnrollCourse, UnenrollCourse, MyCourses, ProfileEdit, CategoryList
 )
 
 urlpatterns = [
-    path('login/', CustomLogin.as_view(), name='rest_login'),
+    path('login/', Login.as_view(), name='rest_login'),
     path('logout/', LogoutView.as_view(), name='rest_logout'),
-    path('signup/', include('dj_rest_auth.registration.urls')),
+    path('signup/', Registration.as_view(), name='rest_signup'),
     path('profile/', Profile.as_view(), name='profile'),
     path('profile/edit/', ProfileEdit.as_view(), name='profile-edit'),
     path('courses/<int:course_id>/modules/<int:module_id>/lessons/<int:lesson_id>/', LessonDetail.as_view(), name='lesson_detail'),
@@ -29,13 +29,13 @@ urlpatterns = [
     path('courses/<int:course_id>/unenroll/', UnenrollCourse.as_view(), name='unenroll-course'),
     path('mycourses/', MyCourses.as_view(), name='my-courses'),
     path('author/courses/', AuthorCourseListCreate.as_view(), name='author_course_list_create'),
-    path('author/course/<int:course_id>/', AuthorCourseEdit.as_view(), name='author_course_edit'),
-    path('author/course/<int:course_id>/modules/', AuthorModuleListCreate.as_view(), name='author_module_list_create'),
-    path('author/course/<int:course_id>/module/<int:module_id>/', AuthorModuleEdit.as_view(), name='author_module_edit'),
-    path('author/course/<int:course_id>/module/<int:module_id>/lessons/', AuthorLessonListCreate.as_view(), name='author_lesson_list_create'),
-    path('author/course/<int:course_id>/module/<int:module_id>/lesson/<int:lesson_id>/', AuthorLessonEdit.as_view(), name='author_lesson_edit'),
-    path('mostpopularcourse/', MostPopularCourse.as_view(), name='most_popular_course'),
-    path('bestcourse/', BestCourse.as_view(), name='best_course'),
+    path('author/courses/<int:course_id>/', AuthorCourseEdit.as_view(), name='author_course_edit'),
+    path('author/courses/<int:course_id>/modules/', AuthorModuleListCreate.as_view(), name='author_module_list_create'),
+    path('author/courses/<int:course_id>/modules/<int:module_id>/', AuthorModuleEdit.as_view(), name='author_module_edit'),
+    path('author/courses/<int:course_id>/modules/<int:module_id>/lessons/', AuthorLessonListCreate.as_view(), name='author_lesson_list_create'),
+    path('author/courses/<int:course_id>/modules/<int:module_id>/lessons/<int:lesson_id>/', AuthorLessonEdit.as_view(), name='author_lesson_edit'),
+    path('mostpopularcourse/', MostPopularCourseView.as_view(), name='most_popular_course'),
+    path('bestcourse/', BestCourseView.as_view(), name='best_course'),
     path('advertisement/', Advertisement.as_view(), name='advertisement'),
-
+    path('categories/', CategoryList.as_view(), name='category-list'),
 ]

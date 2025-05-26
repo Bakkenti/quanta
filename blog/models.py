@@ -4,44 +4,16 @@ from django_ckeditor_5.fields import CKEditor5Field
 from django.contrib.auth.models import User
 
 class BlogPost(models.Model):
-    author = models.ForeignKey(
-        Author,
-        on_delete=models.CASCADE,
-        related_name='blog_posts',
-        verbose_name='Автор'
-    )
-    title = models.CharField(
-        max_length=255,
-        verbose_name='Заголовок'
-    )
-    content = CKEditor5Field(
-        config_name='default',
-        blank=True,
-        null=True,
-        verbose_name='Содержимое'
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='Создано'
-    )
-    updated_at = models.DateTimeField(
-        auto_now=True,
-        verbose_name='Обновлено'
-    )
-    published = models.BooleanField(
-        default=False,
-        verbose_name='Опубликован'
-    )
-    image = models.ImageField(
-        upload_to='blog_images/',
-        blank=True,
-        null=True,
-        verbose_name='Изображение (обложка)'
-    )
+    author = models.ForeignKey(Author, on_delete=models.CASCADE, related_name='blog_posts')
+    title = models.CharField(max_length=255)
+    content = CKEditor5Field(config_name='default', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    published = models.BooleanField(default=False)
+    image = models.ImageField(upload_to='blog_images/', blank=True, null=True)
+    views = models.PositiveIntegerField(default=0)
 
     class Meta:
-        verbose_name = 'Блог-пост'
-        verbose_name_plural = 'Блог-посты'
         ordering = ['-created_at']
 
     def __str__(self):
@@ -52,48 +24,37 @@ class BlogComment(models.Model):
     post = models.ForeignKey(
         'blog.BlogPost',
         on_delete=models.CASCADE,
-        related_name='comments',
-        verbose_name='Пост'
+        related_name='comments'
     )
     parent = models.ForeignKey(
         'self',
         null=True,
         blank=True,
         on_delete=models.CASCADE,
-        related_name='replies',
-        verbose_name='Родительский комментарий'
+        related_name='replies'
     )
     user = models.ForeignKey(
         User,
-        on_delete=models.CASCADE,
-        verbose_name='Пользователь'
+        on_delete=models.CASCADE
     )
-    content = models.TextField(
-        verbose_name='Содержимое'
-    )
+    content = models.TextField()
     created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='Когда написан'
+        auto_now_add=True
     )
     likes = models.PositiveIntegerField(
-        default=0,
-        verbose_name='Лайки'
+        default=0
     )
     dislikes = models.PositiveIntegerField(
-        default=0,
-        verbose_name='Дизлайки'
+        default=0
     )
     replies_count = models.PositiveIntegerField(
-        default=0,
-        verbose_name='Количество ответов'
+        default=0
     )
 
     class Meta:
-        verbose_name = 'Комментарий'
-        verbose_name_plural = 'Комментарии'
         ordering = ['created_at']
 
     def __str__(self):
         if self.parent:
-            return f"Ответ от {self.user.username} к комментарию {self.parent.id} на пост '{self.post.title}'"
-        return f"Комментарий от {self.user.username} к посту '{self.post.title}'"
+            return f"Reply from {self.user.username} to {self.parent.id}'s comment on post '{self.post.title}'"
+        return f"Comment from {self.user.username} on post '{self.post.title}'"

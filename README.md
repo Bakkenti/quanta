@@ -1,7 +1,7 @@
-```markdown
 # QUANTA - Educational Platform
+![Quanta Logo](media/logo.png)
 
-QUANTA is an educational platform inspired by Stepik, built with Django and React.  
+QUANTA is an educational platform, built with Django and React.  
 It allows users to create, manage, and enroll in courses, with a CKEditor-powered admin panel for content editing and a robust REST API for frontend integration.
 
 ---
@@ -69,6 +69,8 @@ DATABASE_USER=""
 DATABASE_PASSWORD=""
 DATABASE_HOST=""
 DATABASE_PORT=""
+EMAIL_HOST_USER=""
+EMAIL_HOST_PASSWORD=""
 ```
 
 ---
@@ -77,20 +79,35 @@ DATABASE_PORT=""
 
 ```
 quanta/
-│── main/                 # Main Django app
-│   ├── models.py         # Database models
-│   ├── views.py          # Business logic
-│   ├── urls.py           # URL routing
-│   ├── serializers.py    # DRF serializers
-│   ├── templates/        # HTML templates (auth/email)
-│   ├── static/           # Static files (CSS, JS)
-│── blog/                 # Blog app
-│── media/                # Uploaded user files
-│── static/               # Collected static files
-│── manage.py             # Django management script
-│── requirements.txt      # Python dependencies
-│── .env                  # Environment variables
-│── README.md             # This file
+│
+├── main/ # Main Django app (models, views, API, admin, etc.)
+│ ├── admin.py
+│ ├── models.py
+│ ├── serializers.py
+│ ├── urls.py
+│ ├── views.py
+│
+├── exercises/ # Exercises app (assignments, AI helper, etc.)
+│ ├── admin.py
+│ ├── ai_helper.py
+│ ├── models.py
+│ ├── serializers.py
+│ ├── urls.py
+│ ├── views.py
+│
+├── blog/ # Blog module (posts, comments)
+│ ├── admin.py
+│ ├── models.py
+│ ├── serializers.py
+│ ├── urls.py
+│ ├── views.py
+│
+├── media/ # Uploaded user files (avatars, images, videos)
+│
+├── requirements.txt # Python dependencies
+├── .env # Environment variables
+├── manage.py # Django management script
+└── 
 ```
 
 ---
@@ -169,6 +186,24 @@ Access it at `http://localhost:8000/`
 | `POST` | `/courses/<id>/unenroll/`   | Unenroll from a course                   |
 | `GET`  | `/mycourses/`               | List courses you are enrolled in         |
 
+#### **GET /mycourses/**
+
+**Response:**
+
+```json
+{
+        "id": 1,
+        "title": "Python",
+        "category": "Programming",
+        "course_image": "/media/course_images/python.png",
+        "author": "Bakkenti",
+        "description": "Master the fundamentals of programming with Python!",
+        "duration": "2 weeks",
+        "level": "all",
+        "students": 1
+}
+```
+
 ---
 
 ### **Blog & Comments**
@@ -187,10 +222,214 @@ Access it at `http://localhost:8000/`
 
 | Method | Endpoint    | Description               |
 | ------ | ----------- | ------------------------- |
-| `GET`  | `/profile/` | View your profile         |
+| `POST` | `/signup/`  | Register                  |
 | `POST` | `/login/`   | Login (returns JWT)       |
 | `POST` | `/logout/`  | Logout (JWT invalidation) |
-| `POST` | `/signup/`  | Register                  |
+| `GET`  | `/profile/` | View your profile         |
+
+#### **POST /signup/**
+
+**Request Body:**
+
+```json
+{
+  "username": "Guest",
+  "email": "example@gmail.com",
+  "password": "123guest"
+}
+```
+
+#### **POST /login/**
+
+**Request Body:**
+
+```json
+{
+  "username/email": "Guest/example@gmail.com",
+  "password": "123guest"
+}
+```
+
+**Response:**
+
+```json
+{
+    "access": "eyJhbGciOiJIUzI1NiIsInR5cCI",
+    "refresh": "",
+    "user": {
+        "pk": 1,
+        "username": "Guest",
+        "email": "example@gmail.com"
+    },
+    "access_expiration": "2025-05-26T04:31:32.815526Z",
+    "refresh_expiration": "2025-05-27T01:31:32.815526Z"
+}
+```
+
+
+
+#### **GET /profile/**
+
+**Response:**
+
+```json
+{
+    "username": "Bakhtiyar",
+    "email": "baktiar@gmail.com",
+    "avatar": null,
+    "role": "student",
+    "about": "Updated about info",
+    "birthday": "2000-01-01",
+    "gender": "M",
+    "phone_number": "+77071234567",
+    "enrolled_courses": {
+        "1": "Python"
+    }
+}
+```
+
+---
+
+
+
+---
+
+### **Author Endpoints**
+
+| Method   | Endpoint                                                               | Description                            |
+| -------- | ---------------------------------------------------------------------- | -------------------------------------- |
+| `GET`    | `/author/courses/`                                                     | List all courses created by the author |
+| `POST`   | `/author/courses/`                                                     | Create a new course                    |
+| `GET`    | `/author/courses/<course_id>/`                                         | Get details of a specific course       |
+| `PATCH`  | `/author/courses/<course_id>/`                                         | Update a specific course               |
+| `DELETE` | `/author/courses/<course_id>/`                                         | Delete a specific course               |
+|          |                                                                        |                                        |
+| `GET`    | `/author/courses/<course_id>/modules/`                                 | List all modules in a course           |
+| `POST`   | `/author/courses/<course_id>/modules/`                                 | Create a new module in a course        |
+| `GET`    | `/author/courses/<course_id>/modules/<module_id>/`                     | Get details of a specific module       |
+| `PATCH`  | `/author/courses/<course_id>/modules/<module_id>/`                     | Update a specific module               |
+| `DELETE` | `/author/courses/<course_id>/modules/<module_id>/`                     | Delete a specific module               |
+|          |                                                                        |                                        |
+| `GET`    | `/author/courses/<course_id>/modules/<module_id>/lessons/`             | List all lessons in a module           |
+| `POST`   | `/author/courses/<course_id>/modules/<module_id>/lessons/`             | Create a new lesson in a module        |
+| `GET`    | `/author/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/` | Get details of a specific lesson       |
+| `PATCH`  | `/author/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/` | Update a specific lesson               |
+| `DELETE` | `/author/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/` | Delete a specific lesson               |
+
+#### **GET /author/courses**
+
+**Response:**
+
+```json
+{
+        "id": 1,
+        "title": "Python",
+        "category": "Programming",
+        "course_image": "/media/course_images/python.png",
+        "author": "Bakkenti",
+        "description": "Master the fundamentals of programming with Python!",
+        "duration": "2 weeks",
+        "level": "all",
+        "students": 1
+    }
+```
+#### **POST /author/courses**
+
+**Request Body:**
+
+```json
+{
+  "title": "Python",
+  "description": "Learn Python from scratch",
+  "duration": "2 weeks",
+  "level": "beginner/intermediate/expert/all"
+}
+```
+
+#### **DELETE /author/courses/1**
+
+**Response:**
+
+```json
+{"message": "Course deleted successfully"}
+```
+
+#### **GET /author/courses/1/modules**
+
+**Response:**
+
+```json
+    {
+        "module_id": 1,
+        "module": "Introduction to Programming and Python",
+        "duration": "1 hour",
+        "lessons": [
+            {
+                "lesson_id": 1,
+                "name": "What is Programming?",
+                "short_description": "Discover what programming is, why it’s important, and how Python fits into the world of software development.",
+                "video_url": null,
+                "uploaded_video": null
+            }
+        ]
+    },
+    {
+        "module_id": 2,
+        "module": "Data Types and Variables",
+        "duration": "1 hour",
+        "lessons": [
+            {
+                "lesson_id": 1,
+                "name": "Numbers, Strings, and Booleans",
+                "short_description": "Explore the fundamental data types in Python and how they are used to store information.",
+                "video_url": null,
+                "uploaded_video": null
+            }
+        ]
+    }
+```
+#### **POST /author/courses/1/modules**
+
+**Request Body:**
+
+```json
+{
+  "module": "Data Types and Variables",
+  "duration": "2 weeks"
+}
+```
+#### **GET /author/courses/1/modules/1/lessons**
+
+**Response:**
+
+```json
+    {
+        "lesson_id": 1,
+        "name": "What is Programming?",
+        "short_description": "Discover what programming is, why it’s important, and how Python fits into the world of software development.",
+        "video_url": null,
+        "uploaded_video": null
+    },
+    {
+        "lesson_id": 2,
+        "name": "Setting Up Your Python Environment",
+        "short_description": "Learn how to install Python and set up your development environment to start writing your first code.",
+        "video_url": null,
+        "uploaded_video": null
+    }
+```
+#### **POST /author/courses/1/modules/1/lessons**
+
+**Request Body:**
+
+```json
+{
+  "name": "What is programming?",
+  "short_description": "Discover what programming is, why it’s important",
+  "video_url": "google.com/video",
+  "uploaded_video": null
+}
+```
 
 ---
 
@@ -202,51 +441,63 @@ Access it at `http://localhost:8000/`
 | `GET`  | `/bestcourse/`        | Show best-rated course   |
 | `GET`  | `/advertisement/`     | Show advertisements      |
 
----
+#### **GET /mostpopularcourse/**
 
+**Response:**
 
-## ⭐️ Quick API Usage Examples
-
-#### Enroll in a course
-
-```http
-POST /courses/1/enroll/
-Authorization: Bearer <token>
-```
-
-#### Leave a review
-
-```http
-POST /courses/1/
-Content-Type: application/json
-Authorization: Bearer <token>
-
+```json
 {
-  "rating": 5,
-  "feedback": "Awesome!"
+    "id": 1,
+    "title": "Python",
+    "category": "Programming",
+    "course_image": "/media/course_images/python.png",
+    "author": "Bakkenti",
+    "description": "Master the fundamentals of programming with Python!",
+    "duration": "2 weeks",
+    "level": "all",
+    "students": 1
 }
 ```
 
-#### Post a blog comment
+#### **GET /bestcourse/**
 
-```http
-POST /blog/posts/2/comments/
-Content-Type: application/json
-Authorization: Bearer <token>
+**Response:**
 
+```json
 {
-  "content": "Nice article!",
-  "parent": null
+    "id": 2,
+    "title": "JavaScript",
+    "category": "Programming",
+    "course_image": "/media/course_images/js.png",
+    "author": "Bakkenti",
+    "description": "Learn the essentials of JavaScript, the language of the web!\r\nThis course will guide you from the basics to key concepts used in interactive websites and web applications.\r\nYou’ll start with simple scripts and progress to writing real code for dynamic, responsive pages.\r\nBy the end, you’ll be able to create interactive features and understand the core principles behind modern web development.",
+    "duration": "4 weeks",
+    "level": "beginner",
+    "students": 0
 }
 ```
 
-#### Get your enrolled courses
+#### **GET /advertisement/**
 
-```http
-GET /mycourses/
-Authorization: Bearer <token>
+**Response:**
+
+```json
+{
+    "count": 1,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "name": "Agentic AI and AI Agents for Leaders",
+            "content": "<p>Unlock the future of leadership with our exclusive program on Agentic AI and AI Agents.",
+            "image": "https://quant.up.railway.app/media/ad.png",
+            "url": "http://www.coursera.org/specializations/ai-agents-for-leaders",
+            "created_at": "2025-05-18T23:23:59.003374Z"
+        }
+    ]
+}
 ```
-
 ---
 
 ## 🚀 Deployment
@@ -290,7 +541,7 @@ docker-compose up --build -d
 
 ## 📝 License
 
-MIT — see `LICENSE` for details.
+MIT — see [LICENSE](LICENSE) for details.
 
 ---
 
@@ -299,4 +550,3 @@ MIT — see `LICENSE` for details.
 * **Email:** [baktiarlesov@example.com](mailto:baktiarlesov@example.com)
 * **GitHub Issues:** [Open an issue](https://github.com/Bakkeni/quanta/issues)
 * **Discord:** Coming soon!
-```

@@ -1,48 +1,50 @@
 from django.shortcuts import get_object_or_404
-from django.http import JsonResponse, HttpResponseRedirect, HttpResponse
-from django.urls import reverse, path, reverse_lazy
-from django.contrib import messages
-from django.contrib.auth import get_user_model, authenticate, logout as django_logout
-from django.contrib.auth.models import User
-from django.contrib.auth.hashers import check_password
 from django.utils.decorators import method_decorator
-from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
-from rest_framework.decorators import api_view, permission_classes, renderer_classes
-from rest_framework_simplejwt.tokens import RefreshToken
-from .models import Course, Lesson, Student, Author, Review, Module, MostPopularCourse, BestCourse, Advertisement
-from .serializers import (
-    LoginSerializer,
-    CourseSerializer,
-    LessonSerializer,
-    ModuleSerializer,
-    ReviewSerializer,
-    ProfileSerializer,
-    AdvertisementSerializer
-)
-from django.views.generic.edit import CreateView
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django import forms
+from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
 from dj_rest_auth.views import LoginView
-import logging
+from .models import Course, Lesson, Student, Author, Review, Module, MostPopularCourse, BestCourse, Advertisement, Category
+from .serializers import (RegistrationSerializer, CategorySerializer, CourseSerializer, LessonSerializer, ModuleSerializer, ReviewSerializer, ProfileSerializer, AdvertisementSerializer, UserSerializer)
 from django.utils.functional import SimpleLazyObject
+from django.contrib.auth import get_user_model
+import logging
+
 
 logger = logging.getLogger(__name__)
 
-class CustomLogin(LoginView):
-    def get(self, request, *args, **kwargs):
-        if request.user.is_authenticated:
-            return redirect('/')
-        return Response({"detail": "Please log in using POST request."}, status=status.HTTP_200_OK)
+class Registration(generics.CreateAPIView):
+    serializer_class = RegistrationSerializer
+    permission_classes = [AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"detail": "Registration successful."}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class Login(LoginView):
 
     def post(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             return Response({"detail": "You are already authenticated."}, status=status.HTTP_400_BAD_REQUEST)
-        return super().post(request, *args, **kwargs)
+        response = super().post(request, *args, **kwargs)
+        user = None
+        if hasattr(request, 'user') and request.user.is_authenticated:
+            user = request.user
+        else:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            if 'user' in response.data:
+                username = response.data['user'].get('username')
+                user = User.objects.filter(username=username).first()
+        if user:
+            response.data['user'] = UserSerializer(user).data
+        return response
 
 @method_decorator(csrf_exempt, name='dispatch')
 class Logout(APIView):
@@ -67,6 +69,9 @@ class Profile(APIView):
         except Student.DoesNotExist:
             return Response({"detail": "Student profile not found."}, status=status.HTTP_404_NOT_FOUND)
 
+        enrolled_courses = student.enrolled_courses.all()
+        enrolled_courses_dict = {course.id: course.title for course in enrolled_courses}
+
         return Response({
             "username": user.username,
             "email": user.email,
@@ -75,7 +80,8 @@ class Profile(APIView):
             "about": student.about,
             "birthday": student.birthday,
             "gender": student.gender,
-            "phone_number": student.phone_number
+            "phone_number": student.phone_number,
+            "enrolled_courses": enrolled_courses_dict
         })
 
 class ProfileEdit(APIView):
@@ -92,6 +98,11 @@ class ProfileEdit(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class CategoryList(generics.ListAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+
+
 class CourseList(APIView):
     permission_classes = [AllowAny]
 
@@ -106,7 +117,6 @@ class CourseList(APIView):
 
 
 class CourseDetail(APIView):
-    permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get(self, request, id):
         try:
@@ -135,6 +145,7 @@ class CourseDetail(APIView):
                 "course_image": course.course_image.url if course.course_image else None,
                 "duration": course.duration,
                 "level": course.level,
+                "students": course.student_count
             }
 
             modules = course.modules.all()
@@ -281,7 +292,7 @@ class MyCourses(APIView):
         serializer = CourseSerializer(enrolled_courses, many=True)
         return Response(serializer.data)
 
-class MostPopularCourse(APIView):
+class MostPopularCourseView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
@@ -293,7 +304,7 @@ class MostPopularCourse(APIView):
         serializer = CourseSerializer(most_popular_entry.course, context={'request': request})
         return Response(serializer.data)
 
-class BestCourse(APIView):
+class BestCourseView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
@@ -312,7 +323,6 @@ class Advertisement(generics.ListAPIView):
 
 
 class AuthorCourseListCreate(APIView):
-    renderer_classes = [BrowsableAPIRenderer, JSONRenderer]
 
     def get(self, request, *args, **kwargs):
         try:
@@ -336,7 +346,6 @@ class AuthorCourseListCreate(APIView):
 
 
 class AuthorCourseEdit(APIView):
-    renderer_classes = [BrowsableAPIRenderer, JSONRenderer]
 
     def get(self, request, course_id, *args, **kwargs):
         course = get_object_or_404(Course, id=course_id, author__user=request.user)
@@ -358,8 +367,6 @@ class AuthorCourseEdit(APIView):
 
 
 class AuthorModuleListCreate(APIView):
-    permission_classes = [IsAuthenticated]
-    renderer_classes = [BrowsableAPIRenderer, JSONRenderer]
 
     def get(self, request, course_id, *args, **kwargs):
         course = get_object_or_404(Course, id=course_id, author__user=request.user)
@@ -377,8 +384,6 @@ class AuthorModuleListCreate(APIView):
 
 
 class AuthorModuleEdit(APIView):
-    permission_classes = [IsAuthenticated]
-    renderer_classes = [BrowsableAPIRenderer, JSONRenderer]
 
     def get(self, request, course_id, module_id, *args, **kwargs):
         module = get_object_or_404(Module, module_id=module_id, course__id=course_id, course__author__user=request.user)
@@ -400,15 +405,11 @@ class AuthorModuleEdit(APIView):
 
 
 class AuthorLessonListCreate(APIView):
-    permission_classes = [IsAuthenticated]
-    renderer_classes = [BrowsableAPIRenderer, JSONRenderer]
 
     def get(self, request, course_id, module_id, *args, **kwargs):
         module = get_object_or_404(Module, module_id=module_id, course__id=course_id, course__author__user=request.user)
-
         lessons = Lesson.objects.filter(module=module)
-
-        serializer = LessonSerializer(lessons, many=True)
+        serializer = LessonSerializer(lessons, many=True, context={'hide_content': True})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request, course_id, module_id, *args, **kwargs):
@@ -424,8 +425,6 @@ class AuthorLessonListCreate(APIView):
 
 
 class AuthorLessonEdit(APIView):
-    permission_classes = [IsAuthenticated]
-    renderer_classes = [BrowsableAPIRenderer, JSONRenderer]
 
     def get(self, request, course_id, module_id, lesson_id, *args, **kwargs):
         module = get_object_or_404(Module, module_id=module_id, course__id=course_id, course__author__user=request.user)

@@ -261,5 +261,9 @@ class AdvertisementAdmin(admin.ModelAdmin):
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name')
+    list_display = ('id', 'name', 'courses_count')
     search_fields = ('name',)
+
+    def courses_count(self, obj):
+        return obj.courses.count()
+    courses_count.short_description = 'Courses Count'

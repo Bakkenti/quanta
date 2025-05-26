@@ -1,5 +1,6 @@
 from rest_framework import generics
 from .models import BlogPost, BlogComment
+from django.db import models
 from .serializers import BlogPostSerializer, BlogCommentSerializer
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -14,7 +15,29 @@ class Posts(generics.ListAPIView):
 class PostDetail(generics.RetrieveAPIView):
     queryset = BlogPost.objects.filter(published=True)
     serializer_class = BlogPostSerializer
-    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        instance = self.get_object()
+        client_ip = self.get_client_ip(request)
+        cache_key = f"viewed_post_{instance.pk}_{client_ip}"
+        from django.core.cache import cache
+
+        if not cache.get(cache_key):
+            instance.views = models.F('views') + 1
+            instance.save(update_fields=['views'])
+            cache.set(cache_key, True, 60 * 60 * 6)
+
+        instance.refresh_from_db()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    def get_client_ip(self, request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
 
 
 class Comments(generics.ListAPIView):  #/?page=number

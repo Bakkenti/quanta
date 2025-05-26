@@ -109,7 +109,6 @@ class ExerciseAttemptListCreate(APIView):
         results = []
         correct_count = 0
 
-        # Получаем язык курса (если надо для запроса подсказки)
         course = Course.objects.get(id=course_id)
         prompt_language = getattr(course.language, "code", None) if hasattr(course, "language") else None
 
@@ -118,7 +117,7 @@ class ExerciseAttemptListCreate(APIView):
             selected_option = attempt.get("selected_option")
             submitted_code = attempt.get("submitted_code")
             submitted_output = attempt.get("submitted_output")
-            request_hint = attempt.get("request_hint", False)  # Флаг запроса подсказки
+            request_hint = attempt.get("request_hint", False)
 
             try:
                 exercise = Exercise.objects.get(
@@ -152,7 +151,6 @@ class ExerciseAttemptListCreate(APIView):
                     submitted_output=submitted_output,
                     is_correct=is_correct
                 )
-                # AI-подсказка только для неправильного ответа, если фронт запросил
                 if not is_correct and request_hint:
                     hint = get_code_hint(
                         student_code=submitted_code,

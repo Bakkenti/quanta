@@ -75,6 +75,10 @@ class Author(models.Model):
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
 
+    @property
+    def courses_count(self):
+        return self.courses.count()
+
     class Meta:
         verbose_name = 'Category'
         verbose_name_plural = 'Categories'
@@ -111,6 +115,10 @@ class Course(models.Model):
         blank=True,
         related_name="courses"
     )
+
+    @property
+    def students_count(self):
+        return self.students.count()
 
     def __str__(self):
         return self.title
