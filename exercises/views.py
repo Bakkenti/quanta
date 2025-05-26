@@ -13,6 +13,7 @@ from exercises.ai_helper import get_code_hint
 class ExerciseListCreate(generics.ListCreateAPIView):
     queryset = Exercise.objects.all().order_by('id')
     serializer_class = ExerciseSerializer
+    pagination_class = None
 
     def get_queryset(self):
         course_id = self.kwargs['course_id']
@@ -26,6 +27,63 @@ class ExerciseListCreate(generics.ListCreateAPIView):
         )
         return Exercise.objects.filter(lesson=lesson)
 
+    def post(self, request, course_id, module_id, lesson_id, *args, **kwargs):
+        lesson = Lesson.objects.get(
+            module__course__id=course_id,
+            module__module_id=module_id,
+            lesson_id=lesson_id
+        )
+
+        type_ = request.data.get('type')
+        exercises_data = request.data.get('exercises', [])
+
+        if type_ == "code" and len(exercises_data) > 1:
+            return Response(
+                {"detail": "Bulk creation for code exercises is not allowed. Only one code exercise per lesson."},
+                status=400)
+
+        if not type_ or not exercises_data:
+            return Response({'detail': 'Specify type and exercises list.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        existing_types = set(lesson.exercises.all().values_list('type', flat=True))
+        if existing_types and (type_ not in existing_types or len(existing_types) > 1):
+            return Response({'detail': 'You cannot mix quiz and code exercises in one lesson.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        created = []
+        errors = []
+
+        for idx, item in enumerate(exercises_data):
+            serializer = ExerciseSerializer(data={
+                'type': type_,
+                'title': item.get('title'),
+                'description': item.get('description', '')
+            })
+            if serializer.is_valid():
+                exercise = serializer.save(lesson=lesson)
+                if type_ == 'quiz' and 'options' in item:
+                    for opt in item['options']:
+                        ExerciseOption.objects.create(exercise=exercise, **opt)
+                elif type_ == 'code' and 'solution' in item:
+                    ExerciseSolution.objects.create(exercise=exercise, **item['solution'])
+                created.append(ExerciseSerializer(exercise).data)
+            else:
+                errors.append({'index': idx, 'errors': serializer.errors})
+
+        if errors:
+            return Response({'created': created, 'errors': errors}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'created': created}, status=status.HTTP_201_CREATED)
+
+    def delete(self, request, course_id, module_id, lesson_id):
+        ids = request.data.get("ids")
+        qs = Exercise.objects.filter(
+            lesson__module__course__id=course_id,
+            lesson__module__module_id=module_id,
+            lesson__lesson_id=lesson_id
+        )
+        if ids:
+            qs = qs.filter(id__in=ids)
+        deleted, _ = qs.delete()
+        return Response({"deleted": deleted}, status=status.HTTP_200_OK)
 
 class ExerciseDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ExerciseSerializer
