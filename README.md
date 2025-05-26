@@ -204,28 +204,15 @@ Access it at `http://localhost:8000/`
 }
 ```
 
----
-
-### **Blog & Comments**
-
-| Method | Endpoint                     | Description                         |
-| ------ | ---------------------------- | ----------------------------------- |
-| `GET`  | `/blog/posts/`               | List blog posts                     |
-| `GET`  | `/blog/posts/<id>/`          | Blog post details                   |
-| `GET`  | `/blog/posts/<id>/comments/` | List comments for a post            |
-| `POST` | `/blog/posts/<id>/comments/` | Add a comment (auth required)       |
-| `POST` | `/blog/posts/<id>/comments/` | Reply to a comment (with parent ID) |
-
----
-
 ### **User/Account**
 
-| Method | Endpoint    | Description               |
-| ------ | ----------- | ------------------------- |
-| `POST` | `/signup/`  | Register                  |
-| `POST` | `/login/`   | Login (returns JWT)       |
-| `POST` | `/logout/`  | Logout (JWT invalidation) |
-| `GET`  | `/profile/` | View your profile         |
+| Method  | Endpoint         | Description               |
+|---------|------------------|---------------------------|
+| `POST`  | `/signup/`       | Register                  |
+| `POST`  | `/login/`        | Login (returns JWT)       |
+| `POST`  | `/logout/`       | Logout (JWT invalidation) |
+| `GET`   | `/profile/`      | View your profile         |
+| `PATCH` | `/profile/edit/` | Edit your profile         |
 
 #### **POST /signup/**
 
@@ -288,9 +275,20 @@ Access it at `http://localhost:8000/`
 }
 ```
 
----
+#### **PATCH /profile/edit/**
 
+**Request Body:**
 
+```json
+{
+    "email": "baktiar@gmail.com",
+    "avatar": null,
+    "about": "Updated about info",
+    "birthday": "2000-01-01",
+    "phone_number": "+77071234567",
+    "gender": "Male/Female/Other"
+}
+```
 
 ---
 
@@ -430,16 +428,27 @@ Access it at `http://localhost:8000/`
   "uploaded_video": null
 }
 ```
+---
 
+### **Blog & Comments**
+
+| Method | Endpoint                     | Description                         |
+| ------ | ---------------------------- | ----------------------------------- |
+| `GET`  | `/blog/posts/`               | List blog posts                     |
+| `GET`  | `/blog/posts/<id>/`          | Blog post details                   |
+| `GET`  | `/blog/posts/<id>/comments/` | List comments for a post            |
+| `POST` | `/blog/posts/<id>/comments/` | Add a comment (auth required)       |
+| `POST` | `/blog/posts/<id>/comments/` | Reply to a comment (with parent ID) |
 ---
 
 ### **Other**
 
 | Method | Endpoint              | Description              |
-| ------ | --------------------- | ------------------------ |
+| ------ |-----------------------|--------------------------|
 | `GET`  | `/mostpopularcourse/` | Show most popular course |
 | `GET`  | `/bestcourse/`        | Show best-rated course   |
 | `GET`  | `/advertisement/`     | Show advertisements      |
+| `GET`  | `/categories/`        | Show categories          |
 
 #### **GET /mostpopularcourse/**
 
@@ -496,6 +505,17 @@ Access it at `http://localhost:8000/`
             "created_at": "2025-05-18T23:23:59.003374Z"
         }
     ]
+}
+```
+#### **GET /categories/**
+
+**Response:**
+
+```json
+{
+            "id": 1,
+            "name": "Programming",
+            "courses_count": 2
 }
 ```
 ---
