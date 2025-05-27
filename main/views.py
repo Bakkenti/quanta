@@ -153,11 +153,12 @@ class CourseDetail(APIView):
 
             author_data = None
             if course.author and hasattr(course.author, 'user') and isinstance(course.author.user, User):
+                student_profile = getattr(course.author.user, 'student', None)
                 author_data = {
                     "id": course.author.user.id,
                     "username": course.author.user.username,
-                    "about": getattr(course.author, 'about', None),
-                    "avatar": course.author.user.avatar.url if getattr(course.author.user, 'avatar', None) else None,
+                    "about": student_profile.about if student_profile else None,
+                    "avatar": student_profile.avatar.url if student_profile and student_profile.avatar else None,
                 }
 
             reviews = Review.objects.filter(course=course)
