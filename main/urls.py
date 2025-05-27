@@ -13,7 +13,7 @@ from .views import (
     Advertisement,
     AuthorCourseListCreate, AuthorCourseEdit,
     AuthorModuleListCreate, AuthorModuleEdit,
-    AuthorLessonListCreate, AuthorLessonEdit, Registration, Login, EnrollCourse, UnenrollCourse, MyCourses, ProfileEdit, CategoryList
+    AuthorLessonListCreate, AuthorLessonEdit, Registration, Login, EnrollCourse, UnenrollCourse, MyCourses, ProfileEdit, CategoryList, SiteStats
 )
 
 urlpatterns = [
@@ -38,4 +38,5 @@ urlpatterns = [
     path('bestcourse/', BestCourseView.as_view(), name='best_course'),
     path('advertisement/', Advertisement.as_view(), name='advertisement'),
     path('categories/', CategoryList.as_view(), name='category-list'),
+    path('site-stats/', SiteStats.as_view(), name='site-stats'),
 ]

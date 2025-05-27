@@ -76,6 +76,8 @@ class CourseSerializer(serializers.ModelSerializer):
     category = serializers.CharField(source='category.name', read_only=True)
     students = serializers.SerializerMethodField()
     language = serializers.CharField(source='language.name', read_only=True)
+    average_mark = serializers.FloatField(read_only=True)
+    created_at = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = Course
@@ -89,7 +91,9 @@ class CourseSerializer(serializers.ModelSerializer):
             'description',
             'duration',
             'level',
-            'students'
+            'students',
+            'average_mark',
+            'created_at'
         ]
 
     def get_course_image(self, obj):
@@ -97,6 +101,12 @@ class CourseSerializer(serializers.ModelSerializer):
 
     def get_students(self, obj):
         return obj.students.count()
+
+    def get_average_mark(self, obj):
+        reviews = obj.reviews.all()
+        if not reviews.exists():
+            return None
+        return round(sum([review.rating for review in reviews]) / reviews.count(), 2)
 
 class CategorySerializer(serializers.ModelSerializer):
     courses_count = serializers.SerializerMethodField()

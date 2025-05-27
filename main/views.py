@@ -11,6 +11,7 @@ from .models import Course, Lesson, Student, Author, Review, Module, MostPopular
 from .serializers import (RegistrationSerializer, CategorySerializer, CourseSerializer, LessonSerializer, ModuleSerializer, ReviewSerializer, ProfileSerializer, AdvertisementSerializer, UserSerializer)
 from django.utils.functional import SimpleLazyObject
 from django.contrib.auth import get_user_model
+from django.db.models import Avg
 import logging
 
 
@@ -107,7 +108,7 @@ class CourseList(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        courses = Course.objects.all()
+        courses = Course.objects.annotate(average_mark=Avg('reviews__rating')).all()
 
         if not courses:
             return Response({'message': 'No courses available'}, status=status.HTTP_404_NOT_FOUND)
@@ -128,8 +129,7 @@ class CourseDetail(APIView):
             logger.info(f"🔍 request.user: {request.user} (Type: {type(request.user)})")
 
             course = get_object_or_404(
-                Course.objects.prefetch_related('modules', 'modules__lessons', 'reviews'), id=id
-            )
+                Course.objects.annotate(average_mark=Avg('reviews__rating')).prefetch_related('modules', 'modules__lessons', 'reviews'), id=id)
 
             student = None
             if request.user.is_authenticated:
@@ -145,7 +145,9 @@ class CourseDetail(APIView):
                 "course_image": course.course_image.url if course.course_image else None,
                 "duration": course.duration,
                 "level": course.level,
-                "students": course.students_count
+                "students": course.students_count,
+                "average_mark": course.average_mark,
+                "created_at": course.created_at
             }
 
             modules = course.modules.all()
@@ -451,3 +453,11 @@ class AuthorLessonEdit(APIView):
         lesson.delete()
         return Response({"message": "Lesson deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
 
+class SiteStats(APIView):
+    def get(self, request):
+        students_count = Student.objects.count()
+        authors_count = Author.objects.count()
+        return Response({
+            "total_students": students_count,
+            "total_authors": authors_count
+        })
