@@ -46,53 +46,58 @@ class ProgrammingLanguageAdmin(admin.ModelAdmin):
     list_display = ('id', 'name')
 
 class AuthorAdminForm(forms.ModelForm):
-    # Выбираем всех пользователей, которые имеют профиль студента и еще не являются авторами
     user = forms.ModelChoiceField(
         queryset=User.objects.filter(student__isnull=False, author__isnull=True),
         label="Select Student to Promote",
         required=True
     )
-
     class Meta:
         model = Author
         fields = ['user']
-
     def clean_user(self):
-        # Сюда попадёт именно User, а не Student!
         user = self.cleaned_data['user']
-        # Прямая проверка: если у юзера уже есть связанный author, то нельзя повышать.
         if hasattr(user, 'author'):
             raise ValidationError("This user is already an author.")
         return user
-
     def save(self, commit=True):
         user = self.cleaned_data['user']
-        # Создаём автора (Author.user = user)
         author = super().save(commit=False)
         author.user = user
-
-        # Добавляем в группу "Author"
-        author_group, created = Group.objects.get_or_create(name='Author')
+        author_group, _ = Group.objects.get_or_create(name='Author')
         user.groups.add(author_group)
         user.save()
-
-        # Промоутим роль у студента
         try:
             student = user.student
             student.role = "author"
             student.save()
         except Student.DoesNotExist:
             pass
-
         if commit:
             author.save()
         return author
+
+
+class StudentInline(admin.StackedInline):
+    model = Student
+    can_delete = False
+    fields = ('about', 'avatar', 'birthday', 'phone_number', 'gender')
+    max_num = 1
+
 
 @admin.register(Author)
 class AuthorAdmin(admin.ModelAdmin):
     list_display = ['user', 'get_user_role']
     search_fields = ['user__username']
-    form = AuthorAdminForm
+
+    def get_inline_instances(self, request, obj=None):
+        if obj:
+            return [StudentInline(self.model, self.admin_site)]
+        return []
+
+    def get_form(self, request, obj=None, **kwargs):
+        if obj is None:
+            kwargs['form'] = AuthorAdminForm
+        return super().get_form(request, obj, **kwargs)
 
     def get_user_role(self, obj):
         if hasattr(obj.user, "student"):
@@ -101,28 +106,6 @@ class AuthorAdmin(admin.ModelAdmin):
             return "Author"
         return "No Role"
 
-    get_user_role.short_description = "Role"
-
-    def delete_model(self, request, obj):
-        user = obj.user
-        try:
-            student = user.student
-            student.role = "student"
-            student.save()
-        except Student.DoesNotExist:
-            pass
-        super().delete_model(request, obj)
-
-    def delete_queryset(self, request, queryset):
-        for obj in queryset:
-            user = obj.user
-            try:
-                student = user.student
-                student.role = "student"
-                student.save()
-            except Student.DoesNotExist:
-                pass
-        super().delete_queryset(request, queryset)
 
 
 class LessonForm(forms.ModelForm):

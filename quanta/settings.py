@@ -214,6 +214,13 @@ for folder in MEDIA_FOLDERS:
 
 CKEDITOR_STORAGE_BACKEND = 'main.custom_storage.UniqueFilenameStorage'
 CKEDITOR_5_UPLOADS = 'course_images/'
+CKEDITOR5_IMAGE_UPLOAD_PATH = "images/"
+CKEDITOR5_IMAGE_BACKEND = "pillow"
+CKEDITOR5_AUTHENTICATION_CLASSES = (
+    "rest_framework.authentication.SessionAuthentication",
+    "rest_framework.authentication.TokenAuthentication",
+)
+
 CKEDITOR_5_CONFIGS = {
     'default': {
         'language': 'en',

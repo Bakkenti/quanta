@@ -6,12 +6,15 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
+from rest_framework.parsers import MultiPartParser, FormParser
 from dj_rest_auth.views import LoginView
-from .models import Course, Lesson, Student, Author, Review, Module, MostPopularCourse, BestCourse, Advertisement, Category
-from .serializers import (RegistrationSerializer, CategorySerializer, CourseSerializer, LessonSerializer, ModuleSerializer, ReviewSerializer, ProfileSerializer, AdvertisementSerializer, UserSerializer)
+from .models import Course, Lesson, Student, Author, Review, Module, MostPopularCourse, BestCourse, Advertisement, Category, SiteReview
+from .serializers import (RegistrationSerializer, CategorySerializer, CourseSerializer, LessonSerializer, ModuleSerializer, ReviewSerializer, ProfileSerializer, AdvertisementSerializer, UserSerializer, SiteReviewSerializer)
 from django.utils.functional import SimpleLazyObject
 from django.contrib.auth import get_user_model
+from django.core.files.storage import default_storage
 from django.db.models import Avg
+
 import logging
 
 
@@ -393,7 +396,7 @@ class AuthorModuleEdit(APIView):
         serializer = ModuleSerializer(module)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def patch(self, request, module_id, *args, **kwargs):
+    def patch(self, request, course_id, module_id, *args, **kwargs):
         module = get_object_or_404(Module, module_id=module_id, course__id=course_id, course__author__user=request.user)
         serializer = ModuleSerializer(module, data=request.data, partial=True)
         if serializer.is_valid():
@@ -401,7 +404,7 @@ class AuthorModuleEdit(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request, module_id, *args, **kwargs):
+    def delete(self, request, course_id, module_id, *args, **kwargs):
         module = get_object_or_404(Module, module_id=module_id, course__id=course_id, course__author__user=request.user)
         module.delete()
         return Response({"message": "Module deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
@@ -457,7 +460,42 @@ class SiteStats(APIView):
     def get(self, request):
         students_count = Student.objects.count()
         authors_count = Author.objects.count()
+        average_site_rating = SiteReview.objects.aggregate(avg_rating=Avg('rating'))['avg_rating']
+        average_site_rating = round(average_site_rating, 2) if average_site_rating is not None else None
         return Response({
             "total_students": students_count,
-            "total_authors": authors_count
+            "total_authors": authors_count,
+            "average_site_rating": average_site_rating
+        })
+
+class SiteReviewView(APIView):
+
+    def post(self, request):
+        user = request.user
+        if SiteReview.objects.filter(user=user).exists():
+            return Response({"error": "You have already left a review."}, status=status.HTTP_400_BAD_REQUEST)
+        rating = request.data.get("rating")
+        feedback = request.data.get("feedback", "")
+        if not rating or int(rating) not in range(1, 6):
+            return Response({"error": "Rating must be between 1 and 5."}, status=status.HTTP_400_BAD_REQUEST)
+        review = SiteReview.objects.create(user=user, rating=rating, feedback=feedback)
+        serializer = SiteReviewSerializer(review)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def get(self, request):
+        reviews = SiteReview.objects.select_related('user').all().order_by('-created_at')
+        serializer = SiteReviewSerializer(reviews, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class LessonImageUploadView(APIView):
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, *args, **kwargs):
+        file = request.FILES.get('upload')
+        if not file:
+            return Response({'error': 'No file uploaded'}, status=400)
+        filename = default_storage.save(f'images/{file.name}', file)
+        file_url = default_storage.url(filename)
+        return Response({
+            'url': file_url
         })

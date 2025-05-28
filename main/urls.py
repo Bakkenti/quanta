@@ -13,7 +13,7 @@ from .views import (
     Advertisement,
     AuthorCourseListCreate, AuthorCourseEdit,
     AuthorModuleListCreate, AuthorModuleEdit,
-    AuthorLessonListCreate, AuthorLessonEdit, Registration, Login, EnrollCourse, UnenrollCourse, MyCourses, ProfileEdit, CategoryList, SiteStats
+    AuthorLessonListCreate, AuthorLessonEdit, Registration, Login, EnrollCourse, UnenrollCourse, MyCourses, ProfileEdit, CategoryList, SiteStats, LessonImageUploadView, SiteReviewView
 )
 
 urlpatterns = [
@@ -39,4 +39,6 @@ urlpatterns = [
     path('advertisement/', Advertisement.as_view(), name='advertisement'),
     path('categories/', CategoryList.as_view(), name='category-list'),
     path('site-stats/', SiteStats.as_view(), name='site-stats'),
+    path('image_upload/', LessonImageUploadView.as_view(), name='ckeditor5_image_upload'),
+    path('site-reviews/', SiteReviewView.as_view(), name='site-reviews'),
 ]

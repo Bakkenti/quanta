@@ -16,6 +16,6 @@ class CustomStorage(FileSystemStorage):
 
 video_storage = CustomStorage(location="media/lesson_videos/", base_url="/media/lesson_videos/")
 
-image_storage = CustomStorage(location="media/lesson_images/", base_url="/media/lesson_images/")
+image_storage = CustomStorage(location="media/images/", base_url="/media/images/")
 
 avatar_storage = CustomStorage(location="media/avatars/", base_url="/media/avatars/")

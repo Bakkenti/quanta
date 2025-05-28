@@ -1,5 +1,5 @@
 # QUANTA - Educational Platform
-![Quanta Logo](media/logo.png)
+![Quanta Logo](media/images/logo.png)
 
 QUANTA is an educational platform, built with Django and React.  
 It allows users to create, manage, and enroll in courses, with a CKEditor-powered admin panel for content editing and a robust REST API for frontend integration.
@@ -428,6 +428,14 @@ Access it at `http://localhost:8000/`
   "uploaded_video": null
 }
 ```
+
+#### **PATCH /author/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/**
+**Request Body:**
+```json
+{
+  "content": "<p>Это новый урок. Картинка ниже:</p><img src=\"/media/images/example.jpg\" alt=\"Описание\"><p>Спасибо!</p>"
+}
+```
 ---
 
 ### **Blog & Comments**
@@ -444,11 +452,12 @@ Access it at `http://localhost:8000/`
 ### **Other**
 
 | Method | Endpoint              | Description              |
-| ------ |-----------------------|--------------------------|
+|--------|-----------------------|--------------------------|
 | `GET`  | `/mostpopularcourse/` | Show most popular course |
 | `GET`  | `/bestcourse/`        | Show best-rated course   |
 | `GET`  | `/advertisement/`     | Show advertisements      |
 | `GET`  | `/categories/`        | Show categories          |
+| `POST` | `/ckeditor5/image_upload/`        | Upload images            |
 
 #### **GET /mostpopularcourse/**
 

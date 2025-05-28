@@ -250,3 +250,22 @@ class Advertisement(models.Model):
 
     def __str__(self):
         return self.name
+
+class SiteReview(models.Model):
+    RATING_CHOICES = [(i, i) for i in range(1, 6)]
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='site_review')
+    rating = models.PositiveSmallIntegerField(choices=RATING_CHOICES)
+    feedback = models.TextField(max_length=1000, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def status(self):
+        if self.rating in [1, 2]:
+            return "negative"
+        elif self.rating == 3:
+            return "neutral"
+        else:
+            return "positive"
+
+    def __str__(self):
+        return f"{self.user.username} — {self.rating}/5"

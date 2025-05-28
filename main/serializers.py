@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Author, Student, Course, Module, Lesson, Review, Advertisement, Category
+from .models import Author, Student, Course, Module, Lesson, Review, Advertisement, Category, SiteReview
 from django.contrib.auth.models import User
 from django_ckeditor_5.fields import CKEditor5Field
 from rest_framework.validators import UniqueValidator
@@ -157,3 +157,17 @@ class AdvertisementSerializer(serializers.ModelSerializer):
     class Meta:
         model = Advertisement
         fields = ["id", "name", "content", "image", "url", "created_at"]
+
+class SiteReviewSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+    role = serializers.SerializerMethodField()
+    status = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = SiteReview
+        fields = ['id', 'username', 'role', 'rating', 'feedback', 'created_at', 'status']
+
+    def get_role(self, obj):
+        if hasattr(obj.user, 'student'):
+            return obj.user.student.role
+        return None
