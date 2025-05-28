@@ -250,6 +250,51 @@ class CourseDetail(APIView):
             logger.error(f"❌ Error: {str(e)}")
             return Response({"error": str(e)}, status=500)
 
+    def patch(self, request, id):
+
+            User = get_user_model()
+            if isinstance(request.user, SimpleLazyObject):
+                request.user = User.objects.get(pk=request.user.pk)
+
+            course = get_object_or_404(Course, id=id)
+            student = getattr(request.user, "student", None)
+            if not student:
+                return Response({"error": "No student profile."}, status=404)
+
+            review = Review.objects.filter(user=student.user, course=course).first()
+            if not review:
+                return Response({"error": "Review does not exist."}, status=404)
+
+            rating = request.data.get("rating")
+            feedback = request.data.get("feedback")
+
+            if rating is not None:
+                if int(rating) not in range(1, 6):
+                    return Response({"error": "Rating must be 1-5."}, status=400)
+                review.rating = int(rating)
+            if feedback is not None:
+                review.feedback = feedback
+
+            review.save()
+            return Response({"message": "Review updated successfully."}, status=200)
+
+    def delete(self, request, id):
+            User = get_user_model()
+            if isinstance(request.user, SimpleLazyObject):
+                request.user = User.objects.get(pk=request.user.pk)
+
+            course = get_object_or_404(Course, id=id)
+            student = getattr(request.user, "student", None)
+            if not student:
+                return Response({"error": "No student profile."}, status=404)
+
+            review = Review.objects.filter(user=student.user, course=course).first()
+            if not review:
+                return Response({"error": "Review does not exist."}, status=404)
+
+            review.delete()
+            return Response({"message": "Review deleted successfully."}, status=204)
+
 class LessonDetail(APIView):
     permission_classes = [AllowAny]
 
