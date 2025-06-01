@@ -520,8 +520,267 @@ Access it at `http://localhost:8000/`
 | `GET`  | `/blog/posts/<id>/comments/` | List comments for a post            |
 | `POST` | `/blog/posts/<id>/comments/` | Add a comment (auth required)       |
 | `POST` | `/blog/posts/<id>/comments/` | Reply to a comment (with parent ID) |
----
 
+---
+### **Exercises Endpoints**
+
+| Method   | Endpoint                                                                                    | Description                                         |
+|----------|---------------------------------------------------------------------------------------------|-----------------------------------------------------|
+| `GET`    | `/author/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/exercises/`            | List all exercises of chosen lesson in author panel |
+| `POST`   | `/author/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/exercises/ `           | Create an exercise in chosen lesson in author panel |
+| `PATCH`  | `/author/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/exercises/edit-mcq`    | Edit MCQ Tasks in author panel                      |
+| `PATCH`  | `/author/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/exercises/edit-code`   | Edit CODE Tasks in author panel                     |
+ `DELETE` | `/author/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/exercises/delete`      | Delete a specific (by id) or all exercises          |
+| `GET`    | `/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/exercises`                    | List all exercises of chosen lesson for student     |
+| `GET`    | `/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/exercises/<exercise_id>`      | See details of specific exercise                    |
+| `POST`   | `/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/submit-answer`                | Submit answer (code/mcq)                            |
+| `POST`   | `/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/exercises/<exercise_id>/hint` | Request hint                                        |
+
+#### **GET /author/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/exercises/**
+#### **GET /courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/exercises/**
+
+**Response:**
+**IF MCQ TASK**
+```json
+{
+        "id": 33,
+        "type": "mcq",
+        "title": "What is the capital of France?",
+        "description": "Choose the correct answer.",
+        "language": 1,
+        "options": [
+            {
+                "id": 72,
+                "text": "Paris",
+                "is_correct": true
+            },
+            {
+                "id": 73,
+                "text": "London",
+                "is_correct": false
+            },
+        ],
+        "solution": null
+    },
+    {
+        "id": 34,
+        "type": "mcq",
+        "title": "Which language runs in a web browser?",
+        "description": "Choose the correct answer.",
+        "language": 1,
+        "options": [
+            {
+                "id": 75,
+                "text": "Python",
+                "is_correct": false
+            },
+            {
+                "id": 76,
+                "text": "JavaScript",
+                "is_correct": true
+            },
+        ],
+        "solution": null
+    }
+```
+**Response:**
+**IF CODE TASK**
+```json
+{
+        "id": 36,
+        "type": "code",
+        "title": "Print Hello World",
+        "description": "Write a program that prints 'Hello, World!'",
+        "language": 1,
+        "options": [],
+        "solution": {
+            "id": 7,
+            "sample_input": "",
+            "expected_output": "Hello, World!",
+            "initial_code": "print()"
+        }
+    }
+```
+
+#### **POST /author/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/exercises/**
+
+**Request:**
+**IF MCQ TASK**
+```json
+{
+  "type": "mcq",
+  "exercises": [
+    {
+      "title": "What is Python?",
+      "description": "Choose the correct answer.",
+      "options": [
+        {"text": "A programming language", "is_correct": true},
+        {"text": "A type of snake", "is_correct": false}
+      ]
+    },
+    {
+      "title": "What does HTML stand for?",
+      "description": "Choose the correct answer.",
+      "options": [
+        {"text": "HyperText Markup Language", "is_correct": true},
+        {"text": "Home Tool Markup Language", "is_correct": false}
+      ]
+    }
+  ]
+}
+
+```
+**Request:**
+**IF CODE TASK**
+```json
+{
+  "type": "code",
+  "exercises": [
+    {
+      "title": "Print Hello World",
+      "description": "Write a program that prints 'Hello, World!'",
+      "solution": {
+        "sample_input": "",
+        "expected_output": "Hello, World!",
+        "initial_code": "print()"
+      }
+    }
+  ]
+}
+```
+#### **PATCH /author/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/exercises/edit-mcq**
+**IF MCQ TASK**
+**Request:**
+```json
+{
+  "exercises": [
+    {
+      "exercise_id": 33,
+      "title": "What is the capital of France? (Updated)",
+      "description": "Choose the correct answer (Updated).",
+      "options": [
+        { "id": 72, "text": "Paris (Correct!)", "is_correct": true },
+        { "id": 73, "text": "London", "is_correct": false },
+        { "id": 74, "text": "Berlin", "is_correct": false }
+      ]
+    },
+    {
+      "exercise_id": 34,
+      "title": "Which language runs in a web browser? (Fixed)",
+      "options": [
+        { "id": 75, "text": "Python", "is_correct": false },
+        { "id": 76, "text": "JavaScript (Correct!)", "is_correct": true },
+        { "id": 77, "text": "C++", "is_correct": false }
+      ]
+    }
+  ]
+}
+```
+#### **PATCH /author/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/exercises/edit-code**
+**IF CODE TASK**
+**Request:**
+```json
+{
+  "exercises": [
+    {
+      "exercise_id": 101,
+      "title": "Print Hello (edited)",
+      "description": "Update desc",
+      "solution": {
+        "sample_input": "",
+        "expected_output": "Hello",
+        "initial_code": "print()"
+      }
+    }
+  ]
+}
+```
+#### **DELETE /author/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/exercises/**
+```json
+{
+  "exercise_ids": [33, 34, 35]
+}
+
+```
+
+### **POST /courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/submit-answer/** 
+
+*FOR MULTIPLE ANSWER FOR QUESTIONS*
+**Request**
+```json
+{
+  "answers": [
+    { "exercise_id": 33, "selected_option": 72 },
+    { "exercise_id": 34, "selected_option": 75 }
+  ]
+}
+```
+**Response**
+```json
+{
+  "attempt_id": 5,
+  "score": 1,
+  "results": [
+    {
+      "exercise_id": 33,
+      "is_correct": true
+    },
+    {
+      "exercise_id": 34,
+      "is_correct": false
+    }
+  ]
+}
+```
+
+*FOR ANSWER TO CODE (COMPILER)*
+**Request**
+```json
+{
+  "answers": [
+    {
+      "exercise_id": 27,
+      "submitted_code": "print('Hello, World!')"
+    }
+  ]
+}
+
+```
+**Response**
+```json
+{
+  "attempt_id": 6,
+  "score": 1,
+  "results": [
+    {
+      "exercise_id": 27,
+      "is_correct": true,
+      "submitted_output": "Hello, World!",
+      "expected_output": "Hello, World!",
+      "stderr": "",
+      "exit_code": 0
+    }
+  ]
+}
+```
+
+#### **POST /courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/exercises/<exercise_id>/hint**
+*for code tasks only*
+
+**Request**
+```json
+{
+  "submitted_code": "print('Hi')"
+}
+```
+**Response**
+```json
+{
+  "hint": "The function name should be `isPrint` for consistency with the task description. Additionally, the function should take an argument to print.\n\n",
+  "fixed_code": "def isPrint(message):\n    print(message)\n\nisPrint('Hello')"
+}
+```
+---
 ### **Other**
 
 | Method | Endpoint              | Description              |

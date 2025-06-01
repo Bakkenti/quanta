@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Exercise, ExerciseOption, ExerciseSolution, ExerciseAttempt
+from .models import Exercise, ExerciseOption, ExerciseSolution, LessonAttempt
+from django.utils.safestring import mark_safe
 
 class ExerciseOptionInline(admin.TabularInline):
     model = ExerciseOption
@@ -20,7 +21,7 @@ class ExerciseAdmin(admin.ModelAdmin):
 
     def get_inlines(self, request, obj=None):
         if obj:
-            if obj.type == 'quiz':
+            if obj.type == 'mcq':
                 return [ExerciseOptionInline]
             elif obj.type == 'code':
                 return [ExerciseSolutionInline]
@@ -41,9 +42,38 @@ class ExerciseSolutionAdmin(admin.ModelAdmin):
     list_display = ('id', 'exercise', 'expected_output')
     search_fields = ('exercise__title',)
 
-@admin.register(ExerciseAttempt)
-class ExerciseAttemptAdmin(admin.ModelAdmin):
-    list_display = ('id', 'student', 'exercise', 'is_correct', 'checked_by_teacher', 'created_at')
-    list_filter = ('is_correct', 'checked_by_teacher', 'exercise')
-    search_fields = ('student__user__username', 'exercise__title')
-    readonly_fields = ('created_at',)
+@admin.register(LessonAttempt)
+class LessonAttemptAdmin(admin.ModelAdmin):
+    list_display = ('id', 'student', 'lesson', 'score', 'created_at', 'get_answers_preview')
+    list_filter = ('lesson', 'student')
+    search_fields = ('student__user__username', 'lesson__name')
+    readonly_fields = ('student', 'lesson', 'created_at', 'score', 'formatted_answers')
+    exclude = ('finished_at',)
+
+    def get_answers_preview(self, obj):
+        return str(obj.answers)[:150]
+    get_answers_preview.short_description = 'Answers (preview)'
+
+    def formatted_answers(self, obj):
+        html = ""
+        from .models import Exercise, ExerciseOption
+        answers = obj.answers
+        if not answers:
+            return "-"
+        html += "<ul>"
+        for ans in answers:
+            ex_id = ans.get('exercise_id')
+            opt_id = ans.get('selected_option')
+            try:
+                exercise = Exercise.objects.get(id=ex_id)
+                option = ExerciseOption.objects.get(id=opt_id, exercise=exercise)
+                is_correct = "✅" if option.is_correct else "❌"
+                html += f"<li><b>Question:</b> {exercise.title}<br>"
+                html += f"<b>Answer:</b> {option.text} {is_correct}</li><br>"
+            except Exception:
+                html += f"<li>Invalid data: {ans}</li>"
+        html += "</ul>"
+        return mark_safe(html)
+    formatted_answers.short_description = "Answers"
+
+

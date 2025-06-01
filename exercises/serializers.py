@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Exercise, ExerciseOption, ExerciseSolution, ExerciseAttempt
+from .models import Exercise, ExerciseOption, ExerciseSolution, LessonAttempt
 
 class ExerciseOptionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -14,7 +14,6 @@ class ExerciseSolutionSerializer(serializers.ModelSerializer):
 class ExerciseSerializer(serializers.ModelSerializer):
     options = ExerciseOptionSerializer(many=True, read_only=True)
     solution = ExerciseSolutionSerializer(read_only=True)
-
     class Meta:
         model = Exercise
         fields = [
@@ -22,33 +21,25 @@ class ExerciseSerializer(serializers.ModelSerializer):
             'type',
             'title',
             'description',
+            'language',
             'options',
             'solution',
         ]
 
-class ExerciseAttemptSerializer(serializers.ModelSerializer):
+class LessonAttemptSerializer(serializers.ModelSerializer):
     student_username = serializers.CharField(source='student.user.username', read_only=True)
-    exercise_title = serializers.CharField(source='exercise.title', read_only=True)
-
+    lesson_id = serializers.IntegerField(source='lesson.lesson_id', read_only=True)
     class Meta:
-        model = ExerciseAttempt
+        model = LessonAttempt
         fields = [
             'id',
             'student_username',
-            'exercise_title',
-            'selected_option',
-            'submitted_code',
-            'submitted_output',
-            'is_correct',
-            'checked_by_teacher',
+            'lesson_id',
+            'answers',
+            'score',
             'created_at',
+            'finished_at'
         ]
         read_only_fields = [
-            'id', 'is_correct', 'checked_by_teacher', 'created_at', 'student_username', 'exercise_title'
+            'id', 'score', 'created_at', 'finished_at', 'student_username', 'lesson_id'
         ]
-
-    def validate(self, attrs):
-        if attrs.get('selected_option') and (attrs.get('submitted_code') or attrs.get('submitted_output')):
-            raise serializers.ValidationError("Choose only one: select option OR submit code/output.")
-        return attrs
-

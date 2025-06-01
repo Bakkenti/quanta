@@ -1,31 +1,23 @@
-from rest_framework import generics, permissions
+from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Exercise, ExerciseOption, ExerciseSolution, ExerciseAttempt
-from .serializers import (
-    ExerciseSerializer, ExerciseOptionSerializer,
-    ExerciseSolutionSerializer, ExerciseAttemptSerializer
-)
-from main.models import Course, Lesson
-from rest_framework import status
-from exercises.ai_helper import get_code_hint
+from .models import Exercise, ExerciseOption, Lesson, LessonAttempt
+from .serializers import ExerciseSerializer, LessonAttemptSerializer
+from .ai_helper import execute_code, get_code_hint
 
-class ExerciseListCreate(generics.ListCreateAPIView):
-    queryset = Exercise.objects.all().order_by('id')
+class AuthorExerciseListCreate(generics.ListCreateAPIView):
     serializer_class = ExerciseSerializer
     pagination_class = None
 
     def get_queryset(self):
-        course_id = self.kwargs['course_id']
-        module_id = self.kwargs['module_id']
-        lesson_id = self.kwargs['lesson_id']
-
-        lesson = Lesson.objects.get(
-            module__course__id=course_id,
-            module__module_id=module_id,
-            lesson_id=lesson_id
+        course_id = self.kwargs["course_id"]
+        module_id = self.kwargs["module_id"]
+        lesson_id = self.kwargs["lesson_id"]
+        return Exercise.objects.filter(
+            lesson__lesson_id=lesson_id,
+            lesson__module__module_id=module_id,
+            lesson__module__course__id=course_id
         )
-        return Exercise.objects.filter(lesson=lesson)
 
     def post(self, request, course_id, module_id, lesson_id, *args, **kwargs):
         lesson = Lesson.objects.get(
@@ -33,217 +25,243 @@ class ExerciseListCreate(generics.ListCreateAPIView):
             module__module_id=module_id,
             lesson_id=lesson_id
         )
-
         type_ = request.data.get('type')
         exercises_data = request.data.get('exercises', [])
-
-        if type_ == "code" and len(exercises_data) > 1:
-            return Response(
-                {"detail": "Bulk creation for code exercises is not allowed. Only one code exercise per lesson."},
-                status=400)
-
+        common_description = request.data.get('description', '')
         if not type_ or not exercises_data:
             return Response({'detail': 'Specify type and exercises list.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        existing_types = set(lesson.exercises.all().values_list('type', flat=True))
-        if existing_types and (type_ not in existing_types or len(existing_types) > 1):
-            return Response({'detail': 'You cannot mix quiz and code exercises in one lesson.'}, status=status.HTTP_400_BAD_REQUEST)
-
         created = []
         errors = []
-
         for idx, item in enumerate(exercises_data):
+            description = item.get('description', common_description)
             serializer = ExerciseSerializer(data={
                 'type': type_,
                 'title': item.get('title'),
-                'description': item.get('description', '')
+                'description': description,
             })
             if serializer.is_valid():
                 exercise = serializer.save(lesson=lesson)
-                if type_ == 'quiz' and 'options' in item:
+                if type_ == 'mcq' and 'options' in item:
                     for opt in item['options']:
                         ExerciseOption.objects.create(exercise=exercise, **opt)
                 elif type_ == 'code' and 'solution' in item:
+                    from .models import ExerciseSolution
                     ExerciseSolution.objects.create(exercise=exercise, **item['solution'])
                 created.append(ExerciseSerializer(exercise).data)
             else:
                 errors.append({'index': idx, 'errors': serializer.errors})
-
         if errors:
             return Response({'created': created, 'errors': errors}, status=status.HTTP_400_BAD_REQUEST)
         return Response({'created': created}, status=status.HTTP_201_CREATED)
 
-    def delete(self, request, course_id, module_id, lesson_id):
-        ids = request.data.get("ids")
-        qs = Exercise.objects.filter(
-            lesson__module__course__id=course_id,
-            lesson__module__module_id=module_id,
-            lesson__lesson_id=lesson_id
-        )
-        if ids:
-            qs = qs.filter(id__in=ids)
-        deleted, _ = qs.delete()
-        return Response({"deleted": deleted}, status=status.HTTP_200_OK)
 
-class ExerciseDetail(generics.RetrieveUpdateDestroyAPIView):
+
+
+class StudentExerciseList(generics.ListAPIView):
     serializer_class = ExerciseSerializer
+    pagination_class = None
 
     def get_queryset(self):
-        course_id = self.kwargs['course_id']
-        module_id = self.kwargs['module_id']
-        lesson_id = self.kwargs['lesson_id']
+        course_id = self.kwargs["course_id"]
+        module_id = self.kwargs["module_id"]
+        lesson_id = self.kwargs["lesson_id"]
         return Exercise.objects.filter(
-            lesson__module__course__id=course_id,
+            lesson__lesson_id=lesson_id,
             lesson__module__module_id=module_id,
-            lesson__lesson_id=lesson_id
+            lesson__module__course__id=course_id
         )
 
-class AllExercises(APIView):
-    def get(self, request):
-        courses = Course.objects.all()
-        result = []
-        for course in courses:
-            course_modules = []
-            modules = course.modules.all()
-            for module in modules:
-                module_lessons = []
-                lessons = module.lessons.all()
-                for lesson in lessons:
-                    exercises = lesson.exercises.all()
-                    if exercises.exists():
-                        lesson_data = {
-                            "lesson_id": lesson.lesson_id,
-                            "lesson": lesson.name,
-                            "exercises": [
-                                {
-                                    "id": exercise.id,
-                                    "type": exercise.type,
-                                    "title": exercise.title,
-                                    "description": exercise.description,
-                                }
-                                for exercise in exercises
-                            ]
-                        }
-                        module_lessons.append(lesson_data)
-                if module_lessons:
-                    module_data = {
-                        "module_id": module.module_id,
-                        "module": module.module,
-                        "lessons": module_lessons
-                    }
-                    course_modules.append(module_data)
-            if course_modules:
-                course_data = {
-                    "id": course.id,
-                    "course": course.title,
-                    "modules": course_modules
-                }
-                result.append(course_data)
-        return Response(result)
 
-class ExerciseOptionListCreate(generics.ListCreateAPIView):
-    serializer_class = ExerciseOptionSerializer
-
+class StudentExerciseDetail(generics.RetrieveAPIView):
+    serializer_class = ExerciseSerializer
+    lookup_field = 'pk'
     def get_queryset(self):
-        exercise_id = self.kwargs['exercise_id']
-        return ExerciseOption.objects.filter(exercise__id=exercise_id)
+        course_id = self.kwargs["course_id"]
+        module_id = self.kwargs["module_id"]
+        lesson_id = self.kwargs["lesson_id"]
+        return Exercise.objects.filter(
+            lesson__lesson_id=lesson_id,
+            lesson__module__module_id=module_id,
+            lesson__module__course__id=course_id
+        )
 
-    def perform_create(self, serializer):
-        exercise_id = self.kwargs['exercise_id']
-        exercise = Exercise.objects.get(id=exercise_id)
-        serializer.save(exercise=exercise)
 
-class ExerciseOptionDetail(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = ExerciseOptionSerializer
-
-    def get_queryset(self):
-        exercise_id = self.kwargs['exercise_id']
-        return ExerciseOption.objects.filter(exercise__id=exercise_id)
-
-class ExerciseAttemptListCreate(APIView):
-    def post(self, request, course_id, module_id, lesson_id, *args, **kwargs):
-        attempts_data = request.data if isinstance(request.data, list) else request.data.get("attempts", [])
-        user = request.user
-        results = []
+class LessonBulkSubmit(APIView):
+    def post(self, request, course_id, module_id, lesson_id):
+        student = request.user.student
+        lesson = Lesson.objects.get(
+            lesson_id=lesson_id,
+            module__module_id=module_id,
+            module__course__id=course_id
+        )
+        answers = request.data.get('answers', [])
+        exercises = {e.id: e for e in Exercise.objects.filter(lesson=lesson)}
         correct_count = 0
+        results = []
+        for ans in answers:
+            ex_id = ans.get('exercise_id')
+            exercise = exercises.get(ex_id)
+            res = {'exercise_id': ex_id, 'is_correct': False}
+            if exercise:
+                if exercise.type == 'mcq':
+                    selected_option = ans.get('selected_option')
+                    try:
+                        option = ExerciseOption.objects.get(id=selected_option, exercise=exercise)
+                        res['is_correct'] = option.is_correct
+                        if option.is_correct:
+                            correct_count += 1
+                    except ExerciseOption.DoesNotExist:
+                        res['error'] = 'Option not found'
+                elif exercise.type == 'code':
+                    submitted_code = ans.get('submitted_code', '')
+                    expected_output = (getattr(exercise.solution, 'expected_output', '') or '').strip()
 
-        course = Course.objects.get(id=course_id)
-        prompt_language = getattr(course.language, "code", None) if hasattr(course, "language") else None
+                    if exercise.language and getattr(exercise.language, "name", None):
+                        lang = exercise.language.name.lower()
+                    elif hasattr(exercise.lesson.module.course, "language") and exercise.lesson.module.course.language:
+                        lang = exercise.lesson.module.course.language.name.lower()
+                    else:
+                        lang = "python"
+                    stdout, stderr, exit_code = execute_code(lang, submitted_code)
+                    res['submitted_output'] = stdout.strip()
+                    res['expected_output'] = expected_output
+                    res['is_correct'] = (stdout.strip() == expected_output)
+                    if res['is_correct']:
+                        correct_count += 1
+                    res['stderr'] = stderr
+                    res['exit_code'] = exit_code
+            results.append(res)
 
-        for attempt in attempts_data:
-            exercise_id = attempt.get("exercise_id")
-            selected_option = attempt.get("selected_option")
-            submitted_code = attempt.get("submitted_code")
-            submitted_output = attempt.get("submitted_output")
-            request_hint = attempt.get("request_hint", False)
+        lesson_attempt = LessonAttempt.objects.create(
+            student=student,
+            lesson=lesson,
+            answers=answers,
+            score=correct_count
+        )
+        return Response({
+            'attempt_id': lesson_attempt.id,
+            'score': correct_count,
+            'results': results
+        }, status=status.HTTP_201_CREATED)
 
+class CodeHintView(APIView):
+    def post(self, request, course_id, module_id, lesson_id, exercise_id):
+        exercise = Exercise.objects.get(
+            id=exercise_id, type='code',
+            lesson__lesson_id=lesson_id,
+            lesson__module__module_id=module_id,
+            lesson__module__course__id=course_id
+        )
+        submitted_code = request.data.get("submitted_code", "")
+        question = f"{exercise.title}\n{exercise.description or ''}"
+        if exercise.language and getattr(exercise.language, "name", None):
+            prompt_language = exercise.language.name.lower()
+        elif hasattr(exercise.lesson.module.course, "language") and exercise.lesson.module.course.language:
+            prompt_language = exercise.lesson.module.course.language.name.lower()
+        else:
+            prompt_language = "python"
+        hint_text, fixed_code = get_code_hint(
+            input_code=submitted_code,
+            question=question,
+            prompt_language=prompt_language
+        )
+        return Response({"hint": hint_text, "fixed_code": fixed_code})
+
+class BulkDeleteExercises(APIView):
+    def delete(self, request, course_id, module_id, lesson_id):
+        ids = request.data.get("ids", [])
+        if not ids:
+            return Response({"detail": "No IDs provided."}, status=status.HTTP_400_BAD_REQUEST)
+        exercises = Exercise.objects.filter(
+            id__in=ids,
+            lesson__lesson_id=lesson_id,
+            lesson__module__module_id=module_id,
+            lesson__module__course__id=course_id
+        )
+        deleted_count, _ = exercises.delete()
+        return Response({"deleted": deleted_count}, status=status.HTTP_200_OK)
+
+class EditMCQ(APIView):
+    def patch(self, request, course_id, module_id, lesson_id):
+        updates = request.data.get('exercises', [])
+        updated = []
+        for item in updates:
+            ex_id = item.get('exercise_id')
             try:
                 exercise = Exercise.objects.get(
-                    id=exercise_id,
+                    id=ex_id, type='mcq',
                     lesson__lesson_id=lesson_id,
                     lesson__module__module_id=module_id,
                     lesson__module__course__id=course_id
                 )
+                if "title" in item:
+                    exercise.title = item["title"]
+                if "description" in item:
+                    exercise.description = item["description"]
+                exercise.save()
+                if "options" in item:
+                    for opt in item["options"]:
+                        opt_id = opt.get("id")
+                        if opt_id:
+                            try:
+                                option = ExerciseOption.objects.get(id=opt_id, exercise=exercise)
+                                if "text" in opt:
+                                    option.text = opt["text"]
+                                if "is_correct" in opt:
+                                    option.is_correct = opt["is_correct"]
+                                option.save()
+                            except ExerciseOption.DoesNotExist:
+                                continue
+                        else:
+                            ExerciseOption.objects.create(
+                                exercise=exercise,
+                                text=opt.get("text", ""),
+                                is_correct=opt.get("is_correct", False)
+                            )
+                updated.append(ex_id)
             except Exercise.DoesNotExist:
                 continue
+        return Response({"updated": updated}, status=status.HTTP_200_OK)
 
-            is_correct = False
-            hint = None
+class EditCode(APIView):
+    def patch(self, request, course_id, module_id, lesson_id):
+        updates = request.data.get('exercises', [])
+        updated = []
+        from .models import ExerciseSolution
 
-            if exercise.type == "quiz" and selected_option:
-                is_correct = exercise.options.filter(id=selected_option, is_correct=True).exists()
-                ExerciseAttempt.objects.create(
-                    student=user.student,
-                    exercise=exercise,
-                    selected_option_id=selected_option,
-                    is_correct=is_correct
+        for item in updates:
+            ex_id = item.get('exercise_id')
+            try:
+                exercise = Exercise.objects.get(
+                    id=ex_id, type='code',
+                    lesson__lesson_id=lesson_id,
+                    lesson__module__module_id=module_id,
+                    lesson__module__course__id=course_id
                 )
-            elif exercise.type == "code" and submitted_output is not None:
-                correct_output = exercise.solution.expected_output.strip()
-                submitted = (submitted_output or "").strip()
-                is_correct = correct_output == submitted
-                ExerciseAttempt.objects.create(
-                    student=user.student,
-                    exercise=exercise,
-                    submitted_code=submitted_code,
-                    submitted_output=submitted_output,
-                    is_correct=is_correct
-                )
-                if not is_correct and request_hint:
-                    hint = get_code_hint(
-                        student_code=submitted_code,
-                        student_output=submitted_output,
-                        expected_output=correct_output,
-                        prompt_language=prompt_language
-                    )
-            results.append({
-                "exercise_id": exercise.id,
-                "is_correct": is_correct,
-                "hint": hint,
-            })
-            if is_correct:
-                correct_count += 1
-
-        return Response({
-            "results": results,
-            "correct_count": correct_count,
-            "total": len(attempts_data)
-        }, status=status.HTTP_201_CREATED)
-
-
-
-class ExerciseAttemptDetail(generics.RetrieveAPIView):
-    serializer_class = ExerciseAttemptSerializer
-
-    def get_queryset(self):
-        course_id = self.kwargs['course_id']
-        module_id = self.kwargs['module_id']
-        lesson_id = self.kwargs['lesson_id']
-        exercise_id = self.kwargs['exercise_id']
-        return ExerciseAttempt.objects.filter(
-            exercise__id=exercise_id,
-            exercise__lesson__lesson_id=lesson_id,
-            exercise__lesson__module__module_id=module_id,
-            exercise__lesson__module__course__id=course_id,
-            student=self.request.user.student
-        )
+                if "title" in item:
+                    exercise.title = item["title"]
+                if "description" in item:
+                    exercise.description = item["description"]
+                exercise.save()
+                if "solution" in item:
+                    sol = item["solution"]
+                    if hasattr(exercise, "solution") and exercise.solution:
+                        solution = exercise.solution
+                        if "sample_input" in sol:
+                            solution.sample_input = sol["sample_input"]
+                        if "expected_output" in sol:
+                            solution.expected_output = sol["expected_output"]
+                        if "initial_code" in sol:
+                            solution.initial_code = sol["initial_code"]
+                        solution.save()
+                    else:
+                        ExerciseSolution.objects.create(
+                            exercise=exercise,
+                            sample_input=sol.get("sample_input", ""),
+                            expected_output=sol.get("expected_output", ""),
+                            initial_code=sol.get("initial_code", "")
+                        )
+                updated.append(ex_id)
+            except Exercise.DoesNotExist:
+                continue
+        return Response({"updated": updated}, status=status.HTTP_200_OK)
