@@ -3,17 +3,12 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from dj_rest_auth.views import LoginView, LogoutView
 
 from .views import (
-    Logout,
-    Profile,
-    CourseList,
-    CourseDetail,
-    LessonDetail,
-    MostPopularCourseView,
-    BestCourseView,
-    Advertisement,
-    AuthorCourseListCreate, AuthorCourseEdit,
-    AuthorModuleListCreate, AuthorModuleEdit,
-    AuthorLessonListCreate, AuthorLessonEdit, Registration, Login, EnrollCourse, UnenrollCourse, MyCourses, ProfileEdit, CategoryList, SiteStats, LessonImageUploadView, SiteReviewView
+    Registration, Login, GoogleLogin, GoogleCodeExchangeView, GithubLogin, GithubCodeExchangeView, Profile,
+    CourseList, CourseDetail, LessonDetail, MostPopularCourseView, BestCourseView, Advertisement,
+    AuthorCourseListCreate, AuthorCourseEdit, AuthorModuleListCreate, AuthorModuleEdit, AuthorLessonListCreate, AuthorLessonEdit,
+    AuthorBlogListCreate, AuthorBlogEdit,
+    MyCourses, EnrollCourse, UnenrollCourse, ProfileEdit, LessonImageUploadView,
+    SiteStats, SiteReviewView, CategoryList
 )
 
 urlpatterns = [
@@ -41,4 +36,11 @@ urlpatterns = [
     path('site-stats/', SiteStats.as_view(), name='site-stats'),
     path('image_upload/', LessonImageUploadView.as_view(), name='ckeditor5_image_upload'),
     path('site-reviews/', SiteReviewView.as_view(), name='site-reviews'),
+    path('auth/google/', GoogleLogin.as_view(), name='google_login'),
+    path('auth/google/callback/', GoogleCodeExchangeView.as_view(), name='google_code_exchange'),
+    path('auth/github/', GithubLogin.as_view(), name='github_login'),
+    path('auth/github/callback/', GithubCodeExchangeView.as_view(), name='github_code_exchange'),
+    path('accounts/', include('allauth.urls')),
+    path('author/blogs/', AuthorBlogListCreate.as_view(), name='author_blog_list_create'),
+    path('author/blogs/<int:blog_id>/', AuthorBlogEdit.as_view(), name='author_blog_edit'),
 ]

@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
     'allauth.socialaccount.providers.facebook',
+    'allauth.socialaccount.providers.github',
     'dj_rest_auth',
 ]
 
@@ -77,7 +78,7 @@ REST_AUTH = {
 
 LOGIN_URL = '/login/'
 
-SITE_ID = 1
+SITE_ID = 3
 
 ACCOUNT_LOGIN_METHODS = ['username', 'email']
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -106,6 +107,14 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
+
+GITHUB_CLIENT_ID = os.getenv('GITHUB_CLIENT_ID')
+GITHUB_CLIENT_SECRET = os.getenv('GITHUB_CLIENT_SECRET')
+GITHUB_REDIRECT_URI = os.getenv('GITHUB_REDIRECT_URI')
+
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
+GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
+GOOGLE_REDIRECT_URI = os.getenv('GOOGLE_REDIRECT_URI')
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

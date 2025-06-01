@@ -10,11 +10,18 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from dj_rest_auth.views import LoginView
 from .models import Course, Lesson, Student, Author, Review, Module, MostPopularCourse, BestCourse, Advertisement, Category, SiteReview
 from .serializers import (RegistrationSerializer, CategorySerializer, CourseSerializer, LessonSerializer, ModuleSerializer, ReviewSerializer, ProfileSerializer, AdvertisementSerializer, UserSerializer, SiteReviewSerializer)
+from blog.models import BlogPost
+from blog.serializers import BlogPostSerializer
 from django.utils.functional import SimpleLazyObject
 from django.contrib.auth import get_user_model
 from django.core.files.storage import default_storage
 from django.db.models import Avg
-
+from dj_rest_auth.registration.views import SocialLoginView
+from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
+from allauth.socialaccount.providers.github.views import GitHubOAuth2Adapter
+from quanta import settings
+import urllib.parse
+import requests
 import logging
 
 
@@ -49,19 +56,6 @@ class Login(LoginView):
         if user:
             response.data['user'] = UserSerializer(user).data
         return response
-
-@method_decorator(csrf_exempt, name='dispatch')
-class Logout(APIView):
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        django_logout(request)
-        return Response({"message": "Successfully logged out."}, status=200)
-
-    def get(self, request):
-        django_logout(request)
-        return Response({"message": "Successfully logged out (GET)."}, status=200)
-
 
 class Profile(APIView):
 
@@ -544,3 +538,142 @@ class LessonImageUploadView(APIView):
         return Response({
             'url': file_url
         })
+
+class GoogleCodeExchangeView(APIView):
+    def post(self, request):
+        code = request.data.get('code')
+        if isinstance(code, list):
+            code = code[0]
+        code = urllib.parse.unquote(code)
+
+        redirect_uri = request.data.get('redirect_uri', settings.GOOGLE_REDIRECT_URI)
+        if not code:
+            return Response({"detail": "No code provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        token_url = 'https://oauth2.googleapis.com/token'
+        data = {
+            'client_id': settings.GOOGLE_CLIENT_ID,
+            'client_secret': settings.GOOGLE_CLIENT_SECRET,
+            'code': code,
+            'redirect_uri': redirect_uri,
+            'grant_type': 'authorization_code'
+        }
+        headers = {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+        token_resp = requests.post(token_url, data=data, headers=headers)
+        try:
+            token_json = token_resp.json()
+        except Exception:
+            token_json = {}
+        if token_resp.status_code != 200 or 'access_token' not in token_json:
+            return Response({"detail": "Could not get access_token from Google", "response": token_resp.text}, status=400)
+
+        access_token = token_json['access_token']
+        id_token = token_json.get('id_token', None)
+
+        social_data = {'access_token': access_token}
+        if id_token:
+            social_data['id_token'] = id_token
+
+        social_request = request._request
+        social_request._body = None
+        social_request.data = social_data
+        view = GoogleLogin.as_view()
+        return view(request._request)
+
+class GoogleLogin(SocialLoginView):
+    adapter_class = GoogleOAuth2Adapter
+
+
+class GithubCodeExchangeView(APIView):
+
+    def post(self, request):
+        code = request.data.get('code')
+        redirect_uri = request.data.get('redirect_uri', settings.GITHUB_REDIRECT_URI)
+        if not code:
+            return Response({"detail": "No code provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        token_url = 'https://github.com/login/oauth/access_token'
+        data = {
+            'client_id': settings.GITHUB_CLIENT_ID,
+            'client_secret': settings.GITHUB_CLIENT_SECRET,
+            'code': code,
+            'redirect_uri': redirect_uri
+        }
+        headers = {
+            'Accept': 'application/json'
+        }
+        token_resp = requests.post(token_url, data=data, headers=headers)
+        if token_resp.status_code != 200 or 'access_token' not in token_resp.json():
+            return Response({"detail": "Could not get access_token from GitHub", "response": token_resp.text},
+                            status=400)
+
+        access_token = token_resp.json()['access_token']
+
+        social_request = request._request
+        social_request._body = None
+        social_request.data = {'access_token': access_token}
+        view = GithubLogin.as_view()
+        return view(request._request)
+
+
+class GithubLogin(SocialLoginView):
+    adapter_class = GitHubOAuth2Adapter
+
+
+class AuthorBlogListCreate(APIView):
+
+    def get(self, request, *args, **kwargs):
+        try:
+            author = Author.objects.get(user=request.user)
+            if not author.is_journalist:
+                return Response({"error": "Access denied. Not a journalist."}, status=status.HTTP_403_FORBIDDEN)
+            blogs = BlogPost.objects.filter(author=author)
+            serializer = BlogPostSerializer(blogs, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Author.DoesNotExist:
+            return Response({"error": "Author profile not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+    def post(self, request, *args, **kwargs):
+        try:
+            author = Author.objects.get(user=request.user)
+            if not author.is_journalist:
+                return Response({"error": "Access denied. Not a journalist."}, status=status.HTTP_403_FORBIDDEN)
+        except Author.DoesNotExist:
+            return Response({"error": "Author profile not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = BlogPostSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(author=author)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class AuthorBlogEdit(APIView):
+
+    def get(self, request, blog_id, *args, **kwargs):
+        author = get_object_or_404(Author, user=request.user)
+        if not author.is_journalist:
+            return Response({"error": "Access denied. Not a journalist."}, status=status.HTTP_403_FORBIDDEN)
+        blog = get_object_or_404(BlogPost, id=blog_id, author=author)
+        serializer = BlogPostSerializer(blog)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, blog_id, *args, **kwargs):
+        author = get_object_or_404(Author, user=request.user)
+        if not author.is_journalist:
+            return Response({"error": "Access denied. Not a journalist."}, status=status.HTTP_403_FORBIDDEN)
+        blog = get_object_or_404(BlogPost, id=blog_id, author=author)
+        serializer = BlogPostSerializer(blog, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, blog_id, *args, **kwargs):
+        author = get_object_or_404(Author, user=request.user)
+        if not author.is_journalist:
+            return Response({"error": "Access denied. Not a journalist."}, status=status.HTTP_403_FORBIDDEN)
+        blog = get_object_or_404(BlogPost, id=blog_id, author=author)
+        blog.delete()
+        return Response({"message": "Blog deleted successfully"}, status=status.HTTP_204_NO_CONTENT)

@@ -67,6 +67,7 @@ class Student(models.Model):
 
 class Author(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="author")
+    is_journalist = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Author: {self.user.username if self.user else 'Unknown'}"
