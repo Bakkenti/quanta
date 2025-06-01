@@ -448,7 +448,7 @@ Access it at `http://localhost:8000/`
 | `POST`   | `/author/blogs/`             | Create a new post                    |
 | `PATCH`  | `/author/blogs/<course_id>/` | Update a specific post               |
 | `DELETE` | `/author/blogs/<course_id>/` | Delete a specific post               |
-|          |                              |                                        
+
 #### **GET /author/blogs**
 
 **Response:**
@@ -462,7 +462,7 @@ Access it at `http://localhost:8000/`
         "created_at": "2025-06-01T15:25:43.360489Z",
         "updated_at": "2025-06-01T15:25:43.360489Z",
         "published": true,
-        "image": null,
+        "image": "/media/blog_images/uses-of-python.jpg",
         "views": 0
     },
     {
