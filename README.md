@@ -265,6 +265,7 @@ Access it at `http://localhost:8000/`
     "email": "baktiar@gmail.com",
     "avatar": null,
     "role": "student",
+    "is_journalist": true,
     "about": "Updated about info",
     "birthday": "2000-01-01",
     "gender": "M",
