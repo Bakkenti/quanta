@@ -598,7 +598,32 @@ Access it at `http://localhost:8000/`
 }
 ```
 ---
+| Method | Endpoint              | Description                 |
+|--------|-----------------------|-----------------------------|
+| `GET`  | `/blog/site-reviews/` | List all reviews on website |
+| `POST` | `/blog/site-reviews/` | Create single review           
+#### **GET /site-reviews/**
 
+```json
+ {
+        "id": 1,
+        "username": "Bakkenti",
+        "role": "author",
+        "rating": 4,
+        "feedback": "Очень удобный сайт! Спасибо за сервис.",
+        "created_at": "2025-05-28T23:05:38.403954Z",
+        "status": "positive"
+    }
+```
+#### **POST /site-reviews/**
+
+```json
+ {
+        "rating": 4,
+        "feedback": "Очень удобный сайт! Спасибо за сервис."
+    }
+```
+---
 ## 🚀 Deployment
 
 ### Gunicorn + Nginx
