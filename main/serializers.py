@@ -71,7 +71,7 @@ class ProfileSerializer(serializers.ModelSerializer):
 
 
 class CourseSerializer(serializers.ModelSerializer):
-    course_image = serializers.SerializerMethodField()
+    course_image = serializers.ImageField(required=True, allow_null=True)
     author = serializers.CharField(source="author.user.username", read_only=True)
     category = serializers.CharField(source='category.name', read_only=True)
     students = serializers.SerializerMethodField()

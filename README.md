@@ -339,9 +339,11 @@ Access it at `http://localhost:8000/`
 ```json
 {
   "title": "Python",
+  "language": "Java/Golang/C#/C++/Javascript/Python",
+  "course_image": "",
   "description": "Learn Python from scratch",
   "duration": "2 weeks",
-  "level": "beginner/intermediate/expert/all"
+  "level": "beginner/intermediate/expert/all",
 }
 ```
 
