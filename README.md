@@ -547,7 +547,7 @@ Access it at `http://localhost:8000/`
         "type": "mcq",
         "title": "What is the capital of France?",
         "description": "Choose the correct answer.",
-        "language": 1,
+        "language": "Python",
         "options": [
             {
                 "id": 72,

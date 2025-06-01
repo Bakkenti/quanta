@@ -14,6 +14,8 @@ class ExerciseSolutionSerializer(serializers.ModelSerializer):
 class ExerciseSerializer(serializers.ModelSerializer):
     options = ExerciseOptionSerializer(many=True, read_only=True)
     solution = ExerciseSolutionSerializer(read_only=True)
+    language = serializers.SerializerMethodField()
+
     class Meta:
         model = Exercise
         fields = [
@@ -25,6 +27,22 @@ class ExerciseSerializer(serializers.ModelSerializer):
             'options',
             'solution',
         ]
+
+    def get_language(self, obj):
+        return obj.language.name if obj.language else None
+
+    def to_internal_value(self, data):
+        validated_data = super().to_internal_value(data)
+        language_name = self.initial_data.get('language')
+        if language_name:
+            try:
+                lang = ProgrammingLanguage.objects.get(name__iexact=language_name)
+                validated_data['language'] = lang
+            except ProgrammingLanguage.DoesNotExist:
+                raise serializers.ValidationError({'language': f"Language '{language_name}' does not exist."})
+        else:
+            validated_data['language'] = None
+        return validated_data
 
 class LessonAttemptSerializer(serializers.ModelSerializer):
     student_username = serializers.CharField(source='student.user.username', read_only=True)

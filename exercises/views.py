@@ -54,9 +54,6 @@ class AuthorExerciseListCreate(generics.ListCreateAPIView):
             return Response({'created': created, 'errors': errors}, status=status.HTTP_400_BAD_REQUEST)
         return Response({'created': created}, status=status.HTTP_201_CREATED)
 
-
-
-
 class StudentExerciseList(generics.ListAPIView):
     serializer_class = ExerciseSerializer
     pagination_class = None
