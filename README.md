@@ -485,7 +485,7 @@ Access it at `http://localhost:8000/`
 {
     "title": "test blo1g",
     "published": "True/False",
-    "image": null,
+    "image": ",/media/blog_images/uses-of-python.jpg",
     "content": "Test content1"
 }
 ```
