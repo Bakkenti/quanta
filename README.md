@@ -292,7 +292,7 @@ Access it at `http://localhost:8000/`
 
 ---
 
-### **Author Endpoints**
+### **Author Course Endpoints**
 
 | Method   | Endpoint                                                               | Description                            |
 | -------- | ---------------------------------------------------------------------- | -------------------------------------- |
@@ -437,7 +437,77 @@ Access it at `http://localhost:8000/`
 }
 ```
 ---
+### **Author Blog Endpoints**
 
+| Method   | Endpoint                     | Description                          |
+|----------|------------------------------|--------------------------------------|
+| `GET`    | `/author/blogs/`             | List all posts created by the author |
+| `POST`   | `/author/blogs/`             | Create a new post                    |
+| `PATCH`  | `/author/blogs/<course_id>/` | Update a specific post               |
+| `DELETE` | `/author/blogs/<course_id>/` | Delete a specific post               |
+|          |                              |                                        
+#### **GET /author/blogs**
+
+**Response:**
+
+```json
+    {
+        "id": 6,
+        "author_username": "Bakkenti",
+        "title": "test blo1g",
+        "content": "Test content1",
+        "created_at": "2025-06-01T15:25:43.360489Z",
+        "updated_at": "2025-06-01T15:25:43.360489Z",
+        "published": true,
+        "image": null,
+        "views": 0
+    },
+    {
+        "id": 5,
+        "author_username": "Bakkenti",
+        "title": "test blo1g",
+        "content": "Test content1",
+        "created_at": "2025-06-01T15:21:57.694285Z",
+        "updated_at": "2025-06-01T15:24:21.016539Z",
+        "published": true,
+        "image": null,
+        "views": 0
+    },
+```
+#### **POST /author/blogs**
+
+**Request Body:**
+
+```json
+{
+    "title": "test blo1g",
+    "published": "True/False",
+    "image": null,
+    "content": "Test content1"
+}
+```
+
+#### **PATCH /author/blogs/ID**
+
+**Request Body:**
+
+```json
+{
+    "title": "test blo1g",
+    "published": "True/False",
+    "image": null,
+    "content": "Test content1"
+}
+```
+
+#### **DELETE /author/blogs/ID**
+
+**Response:**
+
+```json
+{"message": "Blog post deleted successfully"}
+```
+---
 ### **Blog & Comments**
 
 | Method | Endpoint                     | Description                         |
