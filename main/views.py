@@ -67,6 +67,11 @@ class Profile(APIView):
         except Student.DoesNotExist:
             return Response({"detail": "Student profile not found."}, status=status.HTTP_404_NOT_FOUND)
 
+        try:
+            is_journalist = user.author.is_journalist
+        except Exception:
+            is_journalist = False
+
         enrolled_courses = student.enrolled_courses.all()
         enrolled_courses_dict = {course.id: course.title for course in enrolled_courses}
 
@@ -75,6 +80,7 @@ class Profile(APIView):
             "email": user.email,
             "avatar": student.avatar.url if student.avatar else None,
             "role": student.role,
+            "is_journalist": is_journalist,
             "about": student.about,
             "birthday": student.birthday,
             "gender": student.gender,
