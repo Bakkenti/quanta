@@ -783,13 +783,15 @@ Access it at `http://localhost:8000/`
 ---
 ### **Other**
 
-| Method | Endpoint              | Description              |
-|--------|-----------------------|--------------------------|
-| `GET`  | `/mostpopularcourse/` | Show most popular course |
-| `GET`  | `/bestcourse/`        | Show best-rated course   |
-| `GET`  | `/advertisement/`     | Show advertisements      |
-| `GET`  | `/categories/`        | Show categories          |
-| `POST` | `/ckeditor5/image_upload/`        | Upload images            |
+| Method | Endpoint                   | Description              |
+|--------|----------------------------|--------------------------|
+| `GET`  | `/mostpopularcourse/`      | Show most popular course |
+| `GET`  | `/bestcourse/`             | Show best-rated course   |
+| `GET`  | `/advertisement/`          | Show advertisements      |
+| `GET`  | `/categories/`             | Show categories          |
+| `POST` | `/ckeditor5/image_upload/` | Upload images            |
+| `GET`  | `/keep-in-touch/`          | List all responses       |
+| `POST` | `/keep-in-touch/`          | Leave a response         |
 
 #### **GET /mostpopularcourse/**
 
@@ -883,6 +885,22 @@ Access it at `http://localhost:8000/`
  {
         "rating": 4,
         "feedback": "Очень удобный сайт! Спасибо за сервис."
+    }
+```
+#### **GET /keep-in-touch/**
+ ```json   {
+        "id": 1,
+        "email": "user@email.com",
+        "phone": "+1234567890",
+        "message": "I want to keep in touch about your platform.",
+        "created_at": "2025-06-01T23:09:34.727982Z"
+    }
+```
+#### **POST /keep-in-touch/**
+ ```json   {
+        "email": "user@email.com",
+        "phone": "+1234567890", //optional
+        "message": "I want to keep in touch about your platform."
     }
 ```
 ---

@@ -143,6 +143,7 @@ class LessonBulkSubmit(APIView):
 
 class CodeHintView(APIView):
     def post(self, request, course_id, module_id, lesson_id, exercise_id):
+
         exercise = Exercise.objects.get(
             id=exercise_id, type='code',
             lesson__lesson_id=lesson_id,
@@ -162,6 +163,8 @@ class CodeHintView(APIView):
             question=question,
             prompt_language=prompt_language
         )
+
+
         return Response({"hint": hint_text, "fixed_code": fixed_code})
 
 class BulkDeleteExercises(APIView):

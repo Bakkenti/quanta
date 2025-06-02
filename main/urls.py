@@ -8,7 +8,7 @@ from .views import (
     AuthorCourseListCreate, AuthorCourseEdit, AuthorModuleListCreate, AuthorModuleEdit, AuthorLessonListCreate, AuthorLessonEdit,
     AuthorBlogListCreate, AuthorBlogEdit,
     MyCourses, EnrollCourse, UnenrollCourse, ProfileEdit, LessonImageUploadView,
-    SiteStats, SiteReviewView, CategoryList
+    SiteStats, SiteReviewView, CategoryList, KeepInTouchView
 )
 
 urlpatterns = [
@@ -43,4 +43,5 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
     path('author/blogs/', AuthorBlogListCreate.as_view(), name='author_blog_list_create'),
     path('author/blogs/<int:blog_id>/', AuthorBlogEdit.as_view(), name='author_blog_edit'),
+    path('keep-in-touch/', KeepInTouchView.as_view(), name='keep-in-touch'),
 ]

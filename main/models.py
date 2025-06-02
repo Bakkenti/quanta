@@ -270,3 +270,12 @@ class SiteReview(models.Model):
 
     def __str__(self):
         return f"{self.user.username} — {self.rating}/5"
+
+class KeepInTouch(models.Model):
+    email = models.EmailField()
+    phone = models.CharField(max_length=30, blank=True, null=True)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Message from {self.email} ({self.phone})"

@@ -4,12 +4,14 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import AllowAny, BasePermission
 from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
 from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.test import APIRequestFactory
+from django.contrib.sessions.middleware import SessionMiddleware
 from dj_rest_auth.views import LoginView
-from .models import Course, Lesson, Student, Author, Review, Module, MostPopularCourse, BestCourse, Advertisement, Category, SiteReview
-from .serializers import (RegistrationSerializer, CategorySerializer, CourseSerializer, LessonSerializer, ModuleSerializer, ReviewSerializer, ProfileSerializer, AdvertisementSerializer, UserSerializer, SiteReviewSerializer)
+from .models import Course, Lesson, Student, Author, Review, Module, MostPopularCourse, BestCourse, Advertisement, Category, SiteReview, KeepInTouch
+from .serializers import (RegistrationSerializer, CategorySerializer, CourseSerializer, LessonSerializer, ModuleSerializer, ReviewSerializer, ProfileSerializer, AdvertisementSerializer, UserSerializer, SiteReviewSerializer, KeepInTouchSerializer)
 from blog.models import BlogPost
 from blog.serializers import BlogPostSerializer
 from django.utils.functional import SimpleLazyObject
@@ -545,16 +547,15 @@ class LessonImageUploadView(APIView):
             'url': file_url
         })
 
+
 class GoogleCodeExchangeView(APIView):
     def post(self, request):
         code = request.data.get('code')
-        if isinstance(code, list):
-            code = code[0]
-        code = urllib.parse.unquote(code)
-
-        redirect_uri = request.data.get('redirect_uri', settings.GOOGLE_REDIRECT_URI)
         if not code:
             return Response({"detail": "No code provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Берём redirect_uri либо из запроса, либо из settings (в большинстве случаев из settings)
+        redirect_uri = request.data.get('redirect_uri', settings.GOOGLE_REDIRECT_URI)
 
         token_url = 'https://oauth2.googleapis.com/token'
         data = {
@@ -567,21 +568,30 @@ class GoogleCodeExchangeView(APIView):
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
+
+        # Важно: для application/x-www-form-urlencoded используем .post(..., data=...) а не json=...
         token_resp = requests.post(token_url, data=data, headers=headers)
+
         try:
             token_json = token_resp.json()
         except Exception:
             token_json = {}
+
         if token_resp.status_code != 200 or 'access_token' not in token_json:
-            return Response({"detail": "Could not get access_token from Google", "response": token_resp.text}, status=400)
+            return Response({
+                "detail": "Could not get access_token from Google",
+                "response": token_resp.text
+            }, status=400)
 
         access_token = token_json['access_token']
         id_token = token_json.get('id_token', None)
 
+        # Готовим данные для передачи в SocialLoginView
         social_data = {'access_token': access_token}
         if id_token:
             social_data['id_token'] = id_token
 
+        # Django Rest Auth "фича": прокидываем токен как будто это обычный login запрос
         social_request = request._request
         social_request._body = None
         social_request.data = social_data
@@ -611,17 +621,29 @@ class GithubCodeExchangeView(APIView):
             'Accept': 'application/json'
         }
         token_resp = requests.post(token_url, data=data, headers=headers)
+        print(f"GitHub response status: {token_resp.status_code}")
+        print(f"GitHub response text: {token_resp.text}")
+
         if token_resp.status_code != 200 or 'access_token' not in token_resp.json():
             return Response({"detail": "Could not get access_token from GitHub", "response": token_resp.text},
                             status=400)
 
         access_token = token_resp.json()['access_token']
 
-        social_request = request._request
-        social_request._body = None
-        social_request.data = {'access_token': access_token}
+        factory = APIRequestFactory()
+        new_request = factory.post(
+            '/auth/github/',
+            {'access_token': access_token},
+            format='json'
+        )
+        new_request.user = request.user
+
+        middleware = SessionMiddleware(lambda x: x)
+        middleware.process_request(new_request)
+        new_request.session.save()
+
         view = GithubLogin.as_view()
-        return view(request._request)
+        return view(new_request)
 
 
 class GithubLogin(SocialLoginView):
@@ -683,3 +705,15 @@ class AuthorBlogEdit(APIView):
         blog = get_object_or_404(BlogPost, id=blog_id, author=author)
         blog.delete()
         return Response({"message": "Blog deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
+class KeepInTouchView(APIView):
+    def get(self, request):
+        messages = KeepInTouch.objects.all().order_by('-created_at')
+        serializer = KeepInTouchSerializer(messages, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    def post(self, request):
+        serializer = KeepInTouchSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"detail": "Message sent successfully."}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

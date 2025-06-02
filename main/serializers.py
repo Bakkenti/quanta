@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Author, Student, Course, Module, Lesson, Review, Advertisement, Category, SiteReview
+from .models import Author, Student, Course, Module, Lesson, Review, Advertisement, Category, SiteReview, KeepInTouch
 from django.contrib.auth.models import User
 from django_ckeditor_5.fields import CKEditor5Field
 from rest_framework.validators import UniqueValidator
@@ -171,3 +171,9 @@ class SiteReviewSerializer(serializers.ModelSerializer):
         if hasattr(obj.user, 'student'):
             return obj.user.student.role
         return None
+
+class KeepInTouchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = KeepInTouch
+        fields = ['id', 'email', 'phone', 'message', 'created_at']
+        read_only_fields = ['id', 'created_at']
