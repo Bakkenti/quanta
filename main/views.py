@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404
+from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import generics, status
@@ -603,7 +604,6 @@ class GoogleLogin(SocialLoginView):
 
 
 class GithubCodeExchangeView(APIView):
-
     def post(self, request):
         code = request.data.get('code')
         redirect_uri = request.data.get('redirect_uri', settings.GITHUB_REDIRECT_URI)
@@ -624,11 +624,11 @@ class GithubCodeExchangeView(APIView):
         print(f"GitHub response status: {token_resp.status_code}")
         print(f"GitHub response text: {token_resp.text}")
 
-        if token_resp.status_code != 200 or 'access_token' not in token_resp.json():
-            return Response({"detail": "Could not get access_token from GitHub", "response": token_resp.text},
-                            status=400)
+        token_json = token_resp.json()
+        if token_resp.status_code != 200 or 'access_token' not in token_json:
+            return Response({"detail": "Could not get access_token from GitHub", "response": token_resp.text}, status=400)
 
-        access_token = token_resp.json()['access_token']
+        access_token = token_json['access_token']
 
         factory = APIRequestFactory()
         new_request = factory.post(
@@ -642,8 +642,12 @@ class GithubCodeExchangeView(APIView):
         middleware.process_request(new_request)
         new_request.session.save()
 
+        # === ЭТО ОЧЕНЬ ВАЖНО! ===
+        setattr(new_request, '_messages', FallbackStorage(new_request))
+
         view = GithubLogin.as_view()
         return view(new_request)
+
 
 
 class GithubLogin(SocialLoginView):
