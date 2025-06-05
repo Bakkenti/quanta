@@ -10,13 +10,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'quant.up.railway.app', 'jasulan273.github.io/Quanta/']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'quant.up.railway.app', 'quantaup.netlify.app']
 
 INTERNAL_IPS = ('127.0.0.1', 'localhost:8000')
 
 CORS_ALLOW_CREDENTIALS = True
 
-CSRF_TRUSTED_ORIGINS = ['https://quant.up.railway.app', 'http://localhost:8000', 'http://127.0.0.1:8000', 'https://jasulan273.github.io/Quanta/']
+CSRF_TRUSTED_ORIGINS = ['https://quant.up.railway.app', 'http://localhost:8000', 'http://127.0.0.1:8000', 'https://quantaup.netlify.app']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -100,7 +100,7 @@ ACCOUNT_ADAPTER = "main.adapters.MyAccountAdapter"
 
 ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = '/login/'
 ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = '/profile/'
-ACCOUNT_EMAIL_CONFIRMATION_URL = "https://jasulan273.github.io/Quanta/verify-email/?key={key}"
+ACCOUNT_EMAIL_CONFIRMATION_URL = "https://quantaup.netlify.app/verify-email/?key={key}"
 LOGIN_REDIRECT_URL = "/profile/"
 
 AUTHENTICATION_BACKENDS = [
@@ -132,7 +132,7 @@ MIDDLEWARE = [
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "http://localhost:3000",
-    "https://jasulan273.github.io",
+    "https://quantaup.netlify.app",
     "https://quant.up.railway.app",
 ]
 
@@ -143,7 +143,6 @@ CORS_ALLOW_METHODS = [
     "PATCH",
     "DELETE"
 ]
-CORS_ALLOW_CREDENTIALS = True
 ROOT_URLCONF = 'quanta.urls'
 
 TEMPLATES = [
