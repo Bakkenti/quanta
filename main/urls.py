@@ -8,13 +8,15 @@ from .views import (
     AuthorCourseListCreate, AuthorCourseEdit, AuthorModuleListCreate, AuthorModuleEdit, AuthorLessonListCreate, AuthorLessonEdit,
     AuthorBlogListCreate, AuthorBlogEdit,
     MyCourses, EnrollCourse, UnenrollCourse, ProfileEdit, LessonImageUploadView,
-    SiteStats, SiteReviewView, CategoryList, KeepInTouchView
+    SiteStats, SiteReviewView, CategoryList, KeepInTouchView,
+    ApplyAuthor, ApplyJournalist, AppliesStatus, WithdrawApplication, ConfirmEmail
 )
 
 urlpatterns = [
     path('login/', Login.as_view(), name='rest_login'),
     path('logout/', LogoutView.as_view(), name='rest_logout'),
     path('signup/', Registration.as_view(), name='rest_signup'),
+    path('account/confirm-email/', ConfirmEmail.as_view(), name='account_confirm_email'),
     path('profile/', Profile.as_view(), name='profile'),
     path('profile/edit/', ProfileEdit.as_view(), name='profile-edit'),
     path('courses/<int:course_id>/modules/<int:module_id>/lessons/<int:lesson_id>/', LessonDetail.as_view(), name='lesson_detail'),
@@ -44,4 +46,9 @@ urlpatterns = [
     path('author/blogs/', AuthorBlogListCreate.as_view(), name='author_blog_list_create'),
     path('author/blogs/<int:blog_id>/', AuthorBlogEdit.as_view(), name='author_blog_edit'),
     path('keep-in-touch/', KeepInTouchView.as_view(), name='keep-in-touch'),
+    path('author/apply-author/', ApplyAuthor.as_view(), name='apply_author'),
+    path('author/apply-journalist/', ApplyJournalist.as_view(), name='apply_journalist'),
+    path('author/applies-status/', AppliesStatus.as_view(), name='applies_status'),
+    path('author/withdraw/<str:role>/', WithdrawApplication.as_view(), name='withdraw_application'),
+
 ]

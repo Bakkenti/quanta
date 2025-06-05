@@ -31,9 +31,11 @@ class Student(models.Model):
     ROLE_CHOICES = [
         ("student", "Student"),
         ("author", "Author"),
+        ("journalist", "Journalist"),
+        ("author_journalist", "Author & Journalist"),
     ]
 
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default="student")
+    role = models.CharField(max_length=40, choices=ROLE_CHOICES, default="student")
     avatar = models.ImageField(upload_to="avatars/", null=True, blank=True)
     about = models.TextField(max_length=500, null=True, blank=True, default="")
     birthday = models.DateField(null=True, blank=True)
@@ -64,10 +66,21 @@ class Student(models.Model):
             return self.user.username
         return "No Username"
 
+ROLE_STATUS_CHOICES = [
+    ("none", "Did not submit"),
+    ("pending", "In processing"),
+    ("approved", "Confirmed"),
+    ("rejected", "Refused"),
+]
 
 class Author(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="author")
+    is_author = models.BooleanField(default=True)
     is_journalist = models.BooleanField(default=False)
+    author_status = models.CharField(max_length=16, choices=ROLE_STATUS_CHOICES, default="none")
+    journalist_status = models.CharField(max_length=16, choices=ROLE_STATUS_CHOICES, default="none")
+    author_reject_reason = models.TextField(blank=True, null=True)
+    journalist_reject_reason = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return f"Author: {self.user.username if self.user else 'Unknown'}"
@@ -157,7 +170,7 @@ class Lesson(models.Model):
     short_description = models.TextField(null=True, blank=True)
     module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name="lessons")
     video_url = models.URLField(blank=True, null=True)
-    uploaded_video = models.FileField(upload_to="lesson_videos/", storage=video_storage, blank=True, null=True)
+    uploaded_video = models.FileField(upload_to="lesson_videos/",   storage=video_storage, blank=True, null=True)
     content = CKEditor5Field(config_name='default', blank=True, null=True)
     lesson_id = models.IntegerField(null=True, blank=True)
 

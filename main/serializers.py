@@ -69,6 +69,18 @@ class ProfileSerializer(serializers.ModelSerializer):
             instance.user.save()
         return super().update(instance, validated_data)
 
+class AuthorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Author
+        fields = [
+            'is_author',
+            'is_journalist',
+            'author_status',
+            'author_reject_reason',
+            'journalist_status',
+            'journalist_reject_reason'
+        ]
+
 
 class CourseSerializer(serializers.ModelSerializer):
     course_image = serializers.ImageField(required=False, allow_null=True)

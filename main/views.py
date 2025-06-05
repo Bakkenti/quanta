@@ -22,6 +22,7 @@ from django.db.models import Avg
 from dj_rest_auth.registration.views import SocialLoginView
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.github.views import GitHubOAuth2Adapter
+from allauth.account.models import EmailConfirmation, EmailConfirmationHMAC
 from quanta import settings
 import urllib.parse
 import requests
@@ -59,6 +60,23 @@ class Login(LoginView):
         if user:
             response.data['user'] = UserSerializer(user).data
         return response
+
+
+class ConfirmEmail(APIView):
+    def post(self, request):
+        key = request.data.get('key')
+        if not key:
+            return Response({"detail": "No key provided."}, status=400)
+
+        confirmation = EmailConfirmationHMAC.from_key(key)
+        if confirmation is None:
+            try:
+                confirmation = EmailConfirmation.objects.get(key=key)
+            except EmailConfirmation.DoesNotExist:
+                return Response({"detail": "Invalid or expired key."}, status=400)
+
+        confirmation.confirm(request)
+        return Response({"detail": "Email confirmed successfully."})
 
 class Profile(APIView):
 
@@ -508,13 +526,18 @@ class SiteStats(APIView):
     def get(self, request):
         students_count = Student.objects.count()
         authors_count = Author.objects.count()
+        total_courses = Course.objects.count()
+        total_lessons = Lesson.objects.count()
         average_site_rating = SiteReview.objects.aggregate(avg_rating=Avg('rating'))['avg_rating']
         average_site_rating = round(average_site_rating, 2) if average_site_rating is not None else None
         return Response({
             "total_students": students_count,
             "total_authors": authors_count,
+            "total_courses": total_courses,
+            "total_lessons": total_lessons,
             "average_site_rating": average_site_rating
         })
+
 
 class SiteReviewView(APIView):
 
@@ -554,10 +577,9 @@ class GoogleCodeExchangeView(APIView):
         code = request.data.get('code')
         if not code:
             return Response({"detail": "No code provided"}, status=status.HTTP_400_BAD_REQUEST)
+        code = urllib.parse.unquote(code)
 
-        # Берём redirect_uri либо из запроса, либо из settings (в большинстве случаев из settings)
         redirect_uri = request.data.get('redirect_uri', settings.GOOGLE_REDIRECT_URI)
-
         token_url = 'https://oauth2.googleapis.com/token'
         data = {
             'client_id': settings.GOOGLE_CLIENT_ID,
@@ -569,35 +591,39 @@ class GoogleCodeExchangeView(APIView):
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
-
-        # Важно: для application/x-www-form-urlencoded используем .post(..., data=...) а не json=...
         token_resp = requests.post(token_url, data=data, headers=headers)
-
         try:
             token_json = token_resp.json()
         except Exception:
             token_json = {}
-
         if token_resp.status_code != 200 or 'access_token' not in token_json:
             return Response({
                 "detail": "Could not get access_token from Google",
                 "response": token_resp.text
             }, status=400)
-
         access_token = token_json['access_token']
         id_token = token_json.get('id_token', None)
 
-        # Готовим данные для передачи в SocialLoginView
+        factory = APIRequestFactory()
         social_data = {'access_token': access_token}
         if id_token:
             social_data['id_token'] = id_token
 
-        # Django Rest Auth "фича": прокидываем токен как будто это обычный login запрос
-        social_request = request._request
-        social_request._body = None
-        social_request.data = social_data
+        new_request = factory.post(
+            '/auth/google/',
+            social_data,
+            format='json'
+        )
+        new_request.user = request.user
+
+        middleware = SessionMiddleware(lambda x: x)
+        middleware.process_request(new_request)
+        new_request.session.save()
+        setattr(new_request, '_messages', FallbackStorage(new_request))
+
         view = GoogleLogin.as_view()
-        return view(request._request)
+        return view(new_request)
+
 
 class GoogleLogin(SocialLoginView):
     adapter_class = GoogleOAuth2Adapter
@@ -647,8 +673,6 @@ class GithubCodeExchangeView(APIView):
 
         view = GithubLogin.as_view()
         return view(new_request)
-
-
 
 class GithubLogin(SocialLoginView):
     adapter_class = GitHubOAuth2Adapter
@@ -721,3 +745,65 @@ class KeepInTouchView(APIView):
             serializer.save()
             return Response({"detail": "Message sent successfully."}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ApplyAuthor(APIView):
+    def post(self, request):
+        author, _ = Author.objects.get_or_create(user=request.user)
+        if author.author_status == "approved":
+            return Response({"message": "You are already approved as a course author."}, status=200)
+        if author.author_status == "pending":
+            return Response({"message": "Your course author application is already under review."}, status=200)
+        author.author_status = "pending"
+        author.author_reject_reason = ""
+        author.save()
+        return Response({"message": "Your application to become a course author has been submitted. Please wait for review."}, status=202)
+
+class ApplyJournalist(APIView):
+    def post(self, request):
+        author, _ = Author.objects.get_or_create(user=request.user)
+        if author.journalist_status == "approved":
+            return Response({"message": "You are already approved as a journalist."}, status=200)
+        if author.journalist_status == "pending":
+            return Response({"message": "Your journalist application is already under review."}, status=200)
+        author.journalist_status = "pending"
+        author.journalist_reject_reason = ""
+        author.save()
+        return Response({"message": "Your application to become a journalist has been submitted. Please wait for review."}, status=202)
+
+class AppliesStatus(APIView):
+    def get(self, request):
+        author = getattr(request.user, 'author', None)
+        if not author:
+            return Response({
+                "author_status": "none",
+                "author_reject_reason": "",
+                "journalist_status": "none",
+                "journalist_reject_reason": ""
+            }, status=200)
+        return Response({
+            "author_status": author.author_status,
+            "author_reject_reason": author.author_reject_reason or "",
+            "journalist_status": author.journalist_status,
+            "journalist_reject_reason": author.journalist_reject_reason or ""
+        }, status=200)
+
+class WithdrawApplication(APIView):
+    def post(self, request, role):
+        author, _ = Author.objects.get_or_create(user=request.user)
+        if role == "author":
+            if author.author_status != "pending":
+                return Response({"message": "There is no pending course author application to withdraw."}, status=400)
+            author.author_status = "none"
+            author.author_reject_reason = ""
+            author.save()
+            return Response({"message": "Your course author application has been withdrawn."}, status=200)
+        elif role == "journalist":
+            if author.journalist_status != "pending":
+                return Response({"message": "There is no pending journalist application to withdraw."}, status=400)
+            author.journalist_status = "none"
+            author.journalist_reject_reason = ""
+            author.save()
+            return Response({"message": "Your journalist application has been withdrawn."}, status=200)
+        else:
+            return Response({"message": "Invalid role specified."}, status=400)

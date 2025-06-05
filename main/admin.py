@@ -1,4 +1,4 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django import forms
 from django.forms import inlineformset_factory
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
@@ -86,18 +86,29 @@ class StudentInline(admin.StackedInline):
 
 @admin.register(Author)
 class AuthorAdmin(admin.ModelAdmin):
-    list_display = ['user', 'get_user_role']
+    list_display = [
+        'user',
+        'get_user_role',
+        'author_status',
+        'journalist_status',
+        'author_reject_reason_short',
+        'journalist_reject_reason_short',
+    ]
     search_fields = ['user__username']
 
-    def get_inline_instances(self, request, obj=None):
-        if obj:
-            return [StudentInline(self.model, self.admin_site)]
-        return []
+    # Сделай ВСЕ поля editables!
+    # readonly_fields = []   # не нужно, если не хочешь сделать что-то только для чтения
 
-    def get_form(self, request, obj=None, **kwargs):
-        if obj is None:
-            kwargs['form'] = AuthorAdminForm
-        return super().get_form(request, obj, **kwargs)
+    fieldsets = (
+        (None, {
+            'fields': (
+                'user',
+                ('is_author', 'is_journalist'),
+                ('author_status', 'author_reject_reason'),
+                ('journalist_status', 'journalist_reject_reason'),
+            )
+        }),
+    )
 
     def get_user_role(self, obj):
         if hasattr(obj.user, "student"):
@@ -105,6 +116,51 @@ class AuthorAdmin(admin.ModelAdmin):
         elif hasattr(obj.user, "author"):
             return "Author"
         return "No Role"
+    get_user_role.short_description = "User Role"
+
+    def author_reject_reason_short(self, obj):
+        return (obj.author_reject_reason[:30] + '...') if obj.author_reject_reason and len(obj.author_reject_reason) > 30 else (obj.author_reject_reason or "")
+    author_reject_reason_short.short_description = "Author Reject Reason"
+
+    def journalist_reject_reason_short(self, obj):
+        return (obj.journalist_reject_reason[:30] + '...') if obj.journalist_reject_reason and len(obj.journalist_reject_reason) > 30 else (obj.journalist_reject_reason or "")
+    journalist_reject_reason_short.short_description = "Journalist Reject Reason"
+
+    def save_model(self, request, obj, form, change):
+        if obj.author_status == "rejected" and not obj.author_reject_reason:
+            from django.core.exceptions import ValidationError
+            raise ValidationError("Please provide a reason for author rejection!")
+        if obj.author_status == "approved":
+            obj.author_reject_reason = ""
+            obj.is_author = True
+        if obj.author_status in ["none", "pending"]:
+            obj.is_author = False
+
+        if obj.journalist_status == "rejected" and not obj.journalist_reject_reason:
+            from django.core.exceptions import ValidationError
+            raise ValidationError("Please provide a reason for journalist rejection!")
+        if obj.journalist_status == "approved":
+            obj.journalist_reject_reason = ""
+            obj.is_journalist = True
+        if obj.journalist_status in ["none", "pending"]:
+            obj.is_journalist = False
+
+        try:
+            student = obj.user.student
+            if obj.is_author and obj.is_journalist:
+                student.role = "author_journalist"
+            elif obj.is_author:
+                student.role = "author"
+            elif obj.is_journalist:
+                student.role = "journalist"
+            else:
+                student.role = "student"
+            student.save()
+        except Exception:
+            pass
+
+        super().save_model(request, obj, form, change)
+
 
 
 
