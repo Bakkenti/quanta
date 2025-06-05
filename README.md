@@ -264,7 +264,7 @@ Access it at `http://localhost:8000/`
     "username": "Bakhtiyar",
     "email": "baktiar@gmail.com",
     "avatar": null,
-    "role": "student",
+    "role": "student/author/journalist",
     "is_journalist": true,
     "about": "Updated about info",
     "birthday": "2000-01-01",
@@ -290,6 +290,133 @@ Access it at `http://localhost:8000/`
     "gender": "Male/Female/Other"
 }
 ```
+---
+
+Вот как это лучше всего оформить для README, полностью в твоем стиле и с примерами (таблицами, запросами, примерами response/request):
+
+---
+
+### **Author/Journalist Applications**
+
+| Method | Endpoint                    | Description                                               |
+| ------ | --------------------------- | --------------------------------------------------------- |
+| `POST` | `/author/apply-author/`     | Apply to become a course author                           |
+| `POST` | `/author/apply-journalist/` | Apply to become a journalist (blog author)                |
+| `GET`  | `/author/applies-status/`   | View your current application statuses                    |
+| `POST` | `/author/withdraw/<role>/`  | Withdraw an active application ("author" or "journalist") |
+
+---
+
+#### **POST /author/apply-author/**
+
+**Response:**
+
+```json
+{
+  "message": "Your application to become a course author has been submitted. Please wait for review."
+}
+```
+
+*If already pending or approved:*
+
+```json
+{
+  "message": "You are already approved as a course author."
+}
+```
+
+---
+
+#### **POST /author/apply-journalist/**
+
+
+**Response:**
+
+```json
+{
+  "message": "Your application to become a journalist has been submitted. Please wait for review."
+}
+```
+
+*If already pending or approved:*
+
+```json
+{
+  "message": "You are already approved as a journalist."
+}
+```
+
+---
+
+#### **GET /author/applies-status/**
+
+**Response:**
+
+```json
+{
+  "author_status": "pending",      // "none", "pending", "approved", "rejected"
+  "author_reject_reason": "",      // Reason for rejection, if any
+  "journalist_status": "approved", // "none", "pending", "approved", "rejected"
+  "journalist_reject_reason": ""   // Reason for rejection, if any
+}
+```
+
+**Status values:**
+
+* `none` — no application
+* `pending` — under review
+* `approved` — approved, you have this role
+* `rejected` — rejected (see reason)
+
+---
+
+#### **POST /author/withdraw/<role>/**
+
+**Params:**
+`<role>` — either `"author"` or `"journalist"`
+
+**Response (success):**
+
+```json
+{
+  "message": "Your course author / journalist application has been withdrawn."
+}
+```
+
+**Response (no active application):**
+
+```json
+{
+  "message": "There is no pending course author application to withdraw."
+}
+```
+
+```json
+{
+  "message": "There is no pending journalist application to withdraw."
+}
+```
+
+---
+
+#### **Notes**
+
+* Only `pending` applications can be withdrawn. If application is already approved or rejected, use the endpoints above to view status and reason.
+* After approval, your role (`is_author`/`is_journalist`) will be updated and new features/pages will become available in your UI.
+
+---
+
+**Example Flow:**
+
+1. **Apply:**
+   `POST /author/apply-author/`
+   → Response: Application submitted
+2. **Check status:**
+   `GET /author/applies-status/`
+   → Response: Status is `"pending"`
+3. **Withdraw:**
+   `POST /author/withdraw/author/`
+   → Response: Application withdrawn
 
 ---
 
