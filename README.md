@@ -1033,7 +1033,7 @@ Access it at `http://localhost:8000/`
 
 
 
-**POST /survey/recommendation/**
+**POST /survey/**
 
 ```json
 {
