@@ -688,7 +688,6 @@ class GithubCodeExchangeView(APIView):
         middleware.process_request(new_request)
         new_request.session.save()
 
-        # === ЭТО ОЧЕНЬ ВАЖНО! ===
         setattr(new_request, '_messages', FallbackStorage(new_request))
 
         view = GithubLogin.as_view()
