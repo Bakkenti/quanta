@@ -48,11 +48,15 @@ class Login(LoginView):
         if request.user.is_authenticated:
             return Response({"detail": "You are already authenticated."}, status=status.HTTP_400_BAD_REQUEST)
 
-        email = request.data.get("email")
-        if email:
-            confirmed = EmailAddress.objects.filter(email__iexact=email, verified=True).exists()
-            if not confirmed:
-                return Response({"detail": "Please verify your email before logging in."}, status=400)
+        username = request.data.get("username")
+        if username:
+            try:
+                user = get_user_model().objects.get(username=username)
+                email_obj = EmailAddress.objects.filter(user=user, verified=True).first()
+                if not email_obj:
+                    return Response({"detail": "Please verify your email before logging in."}, status=400)
+            except get_user_model().DoesNotExist:
+                pass
 
         response = super().post(request, *args, **kwargs)
 
