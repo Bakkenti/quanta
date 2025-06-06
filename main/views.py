@@ -22,7 +22,7 @@ from django.db.models import Avg
 from dj_rest_auth.registration.views import SocialLoginView
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.github.views import GitHubOAuth2Adapter
-from allauth.account.models import EmailConfirmation, EmailConfirmationHMAC
+from allauth.account.models import EmailAddress, EmailConfirmation, EmailConfirmationHMAC
 from quanta import settings
 import urllib.parse
 import requests
@@ -47,18 +47,27 @@ class Login(LoginView):
     def post(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             return Response({"detail": "You are already authenticated."}, status=status.HTTP_400_BAD_REQUEST)
+
+        email = request.data.get("email")
+        if email:
+            confirmed = EmailAddress.objects.filter(email__iexact=email, verified=True).exists()
+            if not confirmed:
+                return Response({"detail": "Please verify your email before logging in."}, status=400)
+
         response = super().post(request, *args, **kwargs)
+
         user = None
         if hasattr(request, 'user') and request.user.is_authenticated:
             user = request.user
         else:
-            from django.contrib.auth import get_user_model
             User = get_user_model()
             if 'user' in response.data:
                 username = response.data['user'].get('username')
                 user = User.objects.filter(username=username).first()
+
         if user:
             response.data['user'] = UserSerializer(user).data
+
         return response
 
 
