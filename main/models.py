@@ -292,3 +292,16 @@ class KeepInTouch(models.Model):
 
     def __str__(self):
         return f"Message from {self.email} ({self.phone})"
+
+class ConspectChat(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    topic = models.CharField(max_length=255)
+    language = models.CharField(max_length=100)
+    rules_style = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class ConspectMessage(models.Model):
+    chat = models.ForeignKey(ConspectChat, on_delete=models.CASCADE, related_name='messages')
+    role = models.CharField(max_length=10, choices=[('user', 'user'), ('assistant', 'assistant')])
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)

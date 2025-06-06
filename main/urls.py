@@ -9,7 +9,7 @@ from .views import (
     AuthorBlogListCreate, AuthorBlogEdit,
     MyCourses, EnrollCourse, UnenrollCourse, ProfileEdit, LessonImageUploadView,
     SiteStats, SiteReviewView, CategoryList, KeepInTouchView,
-    ApplyAuthor, ApplyJournalist, AppliesStatus, WithdrawApplication, ConfirmEmail
+    ApplyAuthor, ApplyJournalist, AppliesStatus, WithdrawApplication, ConfirmEmail, SurveyRecommendationView, ConspectChatListView, ConspectHistoryView, ConspectSendMessageView, ConspectStartChatView
 )
 
 urlpatterns = [
@@ -50,5 +50,10 @@ urlpatterns = [
     path('author/apply-journalist/', ApplyJournalist.as_view(), name='apply_journalist'),
     path('author/applies-status/', AppliesStatus.as_view(), name='applies_status'),
     path('author/withdraw/<str:role>/', WithdrawApplication.as_view(), name='withdraw_application'),
+    path('survey/', SurveyRecommendationView.as_view(), name='survey-recommendation'),
+    path("conspect/", ConspectChatListView.as_view(), name="conspect-list"),
+    path("conspect/start/", ConspectStartChatView.as_view(), name="conspect-start"),
+    path("conspect/<int:chat_id>/", ConspectHistoryView.as_view(), name="conspect-history"),
+    path("conspect/<int:chat_id>/message/", ConspectSendMessageView.as_view(), name="conspect-message"),
 
 ]

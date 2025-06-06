@@ -9,11 +9,16 @@ from rest_framework.permissions import AllowAny, BasePermission
 from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.test import APIRequestFactory
+from rest_framework.generics import RetrieveAPIView, ListAPIView
 from django.contrib.sessions.middleware import SessionMiddleware
 from dj_rest_auth.views import LoginView
-from .models import Course, Lesson, Student, Author, Review, Module, MostPopularCourse, BestCourse, Advertisement, Category, SiteReview, KeepInTouch
-from .serializers import (RegistrationSerializer, CategorySerializer, CourseSerializer, LessonSerializer, ModuleSerializer, ReviewSerializer, ProfileSerializer, AdvertisementSerializer, UserSerializer, SiteReviewSerializer, KeepInTouchSerializer)
+from .models import (Course, Lesson, Student, Author, Review, Module, MostPopularCourse, BestCourse, Advertisement, Category, SiteReview,
+                     KeepInTouch, ProgrammingLanguage, ConspectChat, ConspectMessage)
+from .serializers import (RegistrationSerializer, CategorySerializer, CourseSerializer, LessonSerializer, ModuleSerializer, ReviewSerializer,
+                          ProfileSerializer, AdvertisementSerializer, UserSerializer, SiteReviewSerializer, KeepInTouchSerializer,
+                          ConspectMessageSerializer, SendMessageSerializer, ConspectChatSerializer)
 from blog.models import BlogPost
+
 from blog.serializers import BlogPostSerializer
 from django.utils.functional import SimpleLazyObject
 from django.contrib.auth import get_user_model
@@ -23,8 +28,10 @@ from dj_rest_auth.registration.views import SocialLoginView
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.github.views import GitHubOAuth2Adapter
 from allauth.account.models import EmailAddress, EmailConfirmation, EmailConfirmationHMAC
+from exercises.ai_helper import forward_answers_to_ai, generate_conspect_response
 from quanta import settings
 import urllib.parse
+import json
 import requests
 import logging
 
@@ -820,3 +827,89 @@ class WithdrawApplication(APIView):
             return Response({"message": "Your journalist application has been withdrawn."}, status=200)
         else:
             return Response({"message": "Invalid role specified."}, status=400)
+
+class SurveyRecommendationView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        try:
+            answers = request.data.get("answers", "")
+            if not answers or not isinstance(answers, str):
+                return Response({"error": "Missing or invalid 'answers'"}, status=400)
+
+            result_text = forward_answers_to_ai(answers)
+            return Response({"result": result_text}, status=200)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+
+class ConspectChatListView(ListAPIView):
+    pagination_class = None
+    serializer_class = ConspectChatSerializer
+
+    def get_queryset(self):
+        return ConspectChat.objects.filter(user=self.request.user).order_by("-created_at")
+
+
+class ConspectHistoryView(APIView):
+    pagination_class = None
+
+    def get(self, request, chat_id):
+        chat = get_object_or_404(ConspectChat, id=chat_id, user=request.user)
+        messages = chat.messages.order_by("timestamp")
+        serialized = ConspectMessageSerializer(messages, many=True)
+        return Response({
+            "chat_id": chat.id,
+            "topic": chat.topic,
+            "language": chat.language,
+            "rules_style": chat.rules_style,
+            "messages": serialized.data
+        })
+
+
+class ConspectSendMessageView(APIView):
+    pagination_class = None
+
+    def post(self, request, chat_id):
+        chat = get_object_or_404(ConspectChat, id=chat_id, user=request.user)
+        serializer = SendMessageSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        content = serializer.validated_data["content"]
+
+        ConspectMessage.objects.create(chat=chat, role="user", content=content)
+
+        try:
+            ai_text = generate_conspect_response(chat, content)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        ConspectMessage.objects.create(chat=chat, role="assistant", content=ai_text)
+
+        messages = chat.messages.order_by("timestamp")
+        serialized = ConspectMessageSerializer(messages, many=True)
+
+        return Response({
+            "chat_id": chat.id,
+            "messages": serialized.data
+        })
+
+
+class ConspectStartChatView(APIView):
+    pagination_class = None
+
+    def post(self, request):
+        topic = request.data.get("topic")
+        language = request.data.get("language")
+        style = request.data.get("rules_style")
+
+        if not topic or not language or not style:
+            return Response({"error": "Missing topic, language, or rules_style"}, status=400)
+
+        chat = ConspectChat.objects.create(
+            user=request.user,
+            topic=topic,
+            language=language,
+            rules_style=style
+        )
+
+        return Response({"chat_id": chat.id}, status=201)

@@ -908,6 +908,164 @@ Access it at `http://localhost:8000/`
 }
 ```
 ---
+
+
+##  Conspect AI Assistant  
+
+---
+
+### **Endpoints Overview**
+
+| Method | Endpoint                    | Description                            |
+| ------ | --------------------------- |----------------------------------------|
+| `POST` | `/conspect/start/`          | Start new chat                         |
+| `GET`  | `/conspect/`                | Get a list of all chats                |
+| `GET`  | `/conspect/<chat_id>/`      | History of messages of certain chat    |
+| `POST` | `/conspect/<chat_id>/send/` | Send a message to AI and get an answer |
+
+---
+
+
+
+**POST /conspect/start/**
+
+```json
+{
+  "topic": "Recursion in Go",
+  "language": "Go",
+  "rules_style": "Short Academic Essay"
+}
+```
+
+**Response**
+
+```json
+{
+  "chat_id": 3
+}
+```
+
+---
+
+
+**GET /conspect/**
+
+```json
+[
+  {
+    "id": 3,
+    "topic": "Recursion in Go",
+    "language": "Go",
+    "rules_style": "Short Academic Essay",
+    "created_at": "2025-06-07T12:00:00Z"
+  }
+]
+```
+
+---
+
+
+
+**GET /conspect/3/**
+
+```json
+{
+  "chat_id": 3,
+  "topic": "Recursion in Go",
+  "language": "Go",
+  "rules_style": "Short Academic Essay",
+  "messages": [
+    {
+      "role": "user",
+      "content": "What is recursion?"
+    },
+    {
+      "role": "assistant",
+      "content": "Recursion is when a function calls itself..."
+    }
+  ]
+}
+```
+
+---
+
+
+
+**POST /conspect/3/send/**
+
+```json
+{
+  "content": "Add code examples."
+}
+```
+
+**Response**
+
+```json
+{
+  "chat_id": 3,
+  "messages": [
+    {
+      "role": "user",
+      "content": "Add code examples."
+    },
+    {
+      "role": "assistant",
+      "content": "Sure! Here's an example of recursion in Go..."
+    }
+  ]
+}
+```
+
+---
+
+## 📊 Language Recommendation AI (Survey)
+
+
+
+### **Endpoint**
+
+| Method | Endpoint     | Description                                   |
+| ------ |--------------|-----------------------------------------------|
+| `POST` | `/survey/`   | Send answers of survey and get recommendation |
+
+---
+
+
+
+**POST /survey/recommendation/**
+
+```json
+{
+  "answers": "1) I want to build web apps.\n2) I like clean syntax.\n3) I want to freelance."
+}
+```
+
+---
+
+
+**Response**
+```json
+{
+  "result": "1. JavaScript - Great for web apps...\n2. Python - Clean syntax and easy to learn...\n3. Ruby - Elegant and great for freelancing...",
+  "courses": {
+    "Javascript": [
+      {
+        "id": 2,
+        "title": "JavaScript"
+      }
+    ],
+    "Python": [
+      {
+        "id": 1,
+        "title": "Python"
+      }
+    ]
+  }
+}
+```
+
+---
 ### **Other**
 
 | Method | Endpoint                   | Description              |

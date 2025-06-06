@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Author, Student, Course, Module, Lesson, Review, Advertisement, Category, SiteReview, KeepInTouch
+from .models import Author, Student, Course, Module, Lesson, Review, Advertisement, Category, SiteReview, KeepInTouch, ConspectChat, ConspectMessage
 from dj_rest_auth.serializers import LoginSerializer
 from django.contrib.auth.models import User
 from django_ckeditor_5.fields import CKEditor5Field
@@ -221,3 +221,18 @@ class KeepInTouchSerializer(serializers.ModelSerializer):
         model = KeepInTouch
         fields = ['id', 'email', 'phone', 'message', 'created_at']
         read_only_fields = ['id', 'created_at']
+
+class ConspectMessageSerializer(serializers.ModelSerializer):
+    pagination_class = None
+
+    class Meta:
+        model = ConspectMessage
+        fields = ['id', 'role', 'content', 'timestamp']
+
+class SendMessageSerializer(serializers.Serializer):
+    content = serializers.CharField()
+
+class ConspectChatSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ConspectChat
+        fields = ['id', 'topic', 'language', 'rules_style', 'created_at']
