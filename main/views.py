@@ -837,11 +837,16 @@ class SurveyRecommendationView(APIView):
             if not answers or not isinstance(answers, str):
                 return Response({"error": "Missing or invalid 'answers'"}, status=400)
 
-            result_text = forward_answers_to_ai(answers)
-            return Response({"result": result_text}, status=200)
+            response = forward_answers_to_ai(answers)
+
+            return Response({
+                "result": response.get("result", ""),
+                "courses": response.get("courses", {})
+            })
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
 
 class ConspectChatListView(ListAPIView):
     pagination_class = None

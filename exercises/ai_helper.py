@@ -48,7 +48,7 @@ def get_code_hint(input_code, question, prompt_language="python"):
 def clean_language_name(s):
     return re.sub(r'[^a-zA-Z]', '', s).strip().capitalize()
 
-def forward_answers_to_ai(answers: str) -> str:
+def forward_answers_to_ai(answers: str) -> dict:
     try:
         response = requests.post(
             RECOMMENDATION_URL,
@@ -58,10 +58,11 @@ def forward_answers_to_ai(answers: str) -> str:
         if response.status_code != 200:
             raise Exception(f"AI service failed: {response.status_code} — {response.text}")
 
-        return response.json().get("result", "")
+        return response.json()
 
     except Exception as e:
         raise Exception(f"AI communication error: {str(e)}")
+
 
 def generate_conspect_response(chat, user_message):
     messages = [
