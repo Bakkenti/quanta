@@ -54,14 +54,19 @@ class RegistrationSerializer(serializers.Serializer):
 
 class CustomLoginSerializer(LoginSerializer):
     def validate(self, attrs):
-        data = super().validate(attrs)
+        try:
+            data = super().validate(attrs)
+        except serializers.ValidationError:
+            raise serializers.ValidationError({
+                'non_field_errors': [_('Invalid login or password.')]
+            })
 
         user = self.user
         if user:
             verified = EmailAddress.objects.filter(user=user, verified=True).exists()
             if not verified:
                 raise serializers.ValidationError({
-                    "non_field_errors": [_("Please verify your email before logging in.")]
+                    'non_field_errors': [_('Please confirm your email before logging in.')]
                 })
 
         return data
