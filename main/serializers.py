@@ -8,6 +8,7 @@ from allauth.account.utils import send_email_confirmation
 from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
+from django.contrib.auth import authenticate
 
 class RegistrationSerializer(serializers.Serializer):
     username = serializers.CharField(
@@ -54,22 +55,25 @@ class RegistrationSerializer(serializers.Serializer):
 
 class CustomLoginSerializer(LoginSerializer):
     def validate(self, attrs):
-        try:
-            data = super().validate(attrs)
-        except serializers.ValidationError:
+        # пробуем авторизовать пользователя
+        user = authenticate(request=self.context.get('request'), **attrs)
+
+        if not user:
             raise serializers.ValidationError({
-                'non_field_errors': [_('Invalid login or password.')]
+                'non_field_errors': [_('Invalid credentials.')]
             })
 
-        user = self.user
-        if user:
-            verified = EmailAddress.objects.filter(user=user, verified=True).exists()
-            if not verified:
-                raise serializers.ValidationError({
-                    'non_field_errors': [_('Please confirm your email before logging in.')]
-                })
+        # проверяем подтверждение email
+        verified = EmailAddress.objects.filter(user=user, verified=True).exists()
+        if not verified:
+            raise serializers.ValidationError({
+                'non_field_errors': [_('Please confirm your email before logging in.')]
+            })
 
-        return data
+        # устанавливаем user в self (обязательно!)
+        self.user = user
+
+        return super().validate(attrs)
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
