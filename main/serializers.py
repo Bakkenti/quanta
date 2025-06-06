@@ -18,12 +18,17 @@ class RegistrationSerializer(serializers.Serializer):
     avatar = serializers.ImageField(required=False, allow_null=True)
     about = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     birthday = serializers.DateField(required=False, allow_null=True)
-    phone_number = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    gender = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    phone_number = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=15)
+    gender = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=10)
 
     def validate_password(self, value):
         if len(value) < 8:
             raise serializers.ValidationError("Password must be at least 8 characters long.")
+        return value
+
+    def validate_gender(self, value):
+        if value and value not in ["Male", "Female", "Other"]:
+            raise serializers.ValidationError("Invalid gender.")
         return value
 
     def create(self, validated_data):
