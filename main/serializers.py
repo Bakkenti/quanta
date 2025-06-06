@@ -1,9 +1,13 @@
 from rest_framework import serializers
 from .models import Author, Student, Course, Module, Lesson, Review, Advertisement, Category, SiteReview, KeepInTouch
+from dj_rest_auth.serializers import LoginSerializer
 from django.contrib.auth.models import User
 from django_ckeditor_5.fields import CKEditor5Field
 from rest_framework.validators import UniqueValidator
 from allauth.account.utils import send_email_confirmation
+from allauth.account.models import EmailAddress
+from django.contrib.auth import get_user_model
+from django.utils.translation import gettext_lazy as _
 
 class RegistrationSerializer(serializers.Serializer):
     username = serializers.CharField(
@@ -47,6 +51,20 @@ class RegistrationSerializer(serializers.Serializer):
         student.save()
         send_email_confirmation(self.context['request'], user)
         return student
+
+class CustomLoginSerializer(LoginSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+
+        user = self.user
+        if user:
+            verified = EmailAddress.objects.filter(user=user, verified=True).exists()
+            if not verified:
+                raise serializers.ValidationError({
+                    "non_field_errors": [_("Please verify your email before logging in.")]
+                })
+
+        return data
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:

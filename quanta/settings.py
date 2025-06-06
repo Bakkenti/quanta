@@ -48,6 +48,7 @@ REST_USE_JWT = True
 
 REST_AUTH_SERIALIZERS = {
     'USER_DETAILS_SERIALIZER': 'main.serializers.UserSerializer',
+    'LOGIN_SERIALIZER': 'main.serializers.CustomLoginSerializer'
 }
 
 REST_FRAMEWORK = {
