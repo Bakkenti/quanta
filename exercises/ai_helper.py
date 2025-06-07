@@ -1,6 +1,9 @@
 import requests
 import re
 from main.models import ConspectMessage
+import time
+from requests.exceptions import Timeout, RequestException
+import json
 
 EXECUTE_URL = "https://microservice-quanta.up.railway.app/execute"
 AI_FEEDBACK_URL = "https://microservice-quanta.up.railway.app/feedback"
@@ -50,18 +53,31 @@ def clean_language_name(s):
 
 def forward_answers_to_ai(answers: str) -> dict:
     try:
-        print("SENDING to", RECOMMENDATION_URL)
-        print("Payload:", {"question": answers})
-        response = requests.post(
-            RECOMMENDATION_URL,
-            json={"question": answers},
-            timeout=30
-        )
-        if response.status_code != 200:
-            raise Exception(f"AI service failed: {response.status_code} — {response.text}")
-        print(">>> AI Response:", response.text)
+        payload = {"question": answers}
+        print("\n[AI REQUEST] Sending to:", RECOMMENDATION_URL)
+        print("[AI REQUEST] Payload:", payload)
 
-        return response.json()
+        start_time = time.time()
+        response = requests.post(RECOMMENDATION_URL, json=payload, timeout=60)
+        duration = time.time() - start_time
+        print(f"[AI RESPONSE] Status: {response.status_code} in {duration:.2f}s")
+
+        if response.status_code != 200:
+            raise Exception(f"AI service failed with {response.status_code}: {response.text[:300]}")
+
+        try:
+            data = response.json()
+        except json.JSONDecodeError:
+            raise Exception("Failed to parse JSON from AI response")
+
+        print("[AI RESPONSE] Result preview:", str(data)[:400])
+        return data
+
+    except Timeout:
+        raise Exception("AI request timed out (over 60s)")
+
+    except RequestException as e:
+        raise Exception(f"AI request error: {str(e)}")
 
     except Exception as e:
         raise Exception(f"AI communication error: {str(e)}")
