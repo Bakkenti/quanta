@@ -50,6 +50,8 @@ def clean_language_name(s):
 
 def forward_answers_to_ai(answers: str) -> dict:
     try:
+        print("SENDING to", RECOMMENDATION_URL)
+        print("Payload:", {"question": answers})
         response = requests.post(
             RECOMMENDATION_URL,
             json={"question": answers},
@@ -57,6 +59,7 @@ def forward_answers_to_ai(answers: str) -> dict:
         )
         if response.status_code != 200:
             raise Exception(f"AI service failed: {response.status_code} — {response.text}")
+        print(">>> AI Response:", response.text)
 
         return response.json()
 
