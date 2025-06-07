@@ -28,7 +28,7 @@ from dj_rest_auth.registration.views import SocialLoginView
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.github.views import GitHubOAuth2Adapter
 from allauth.account.models import EmailAddress, EmailConfirmation, EmailConfirmationHMAC
-from exercises.ai_helper import forward_answers_to_ai, generate_conspect_response
+from exercises.ai_helper import forward_answers_to_ai, generate_conspect_response, execute_code
 from quanta import settings
 import urllib.parse
 import json
@@ -922,3 +922,24 @@ class ConspectStartChatView(APIView):
 
         return Response({"chat_id": chat.id}, status=201)
 
+class CodeExecutionView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        language = request.data.get("language")
+        code = request.data.get("code")
+
+        if not language or not code:
+            return Response({"error": "Missing 'language' or 'code'"}, status=400)
+
+        try:
+            stdout, stderr, exit_code = execute_code(language, code)
+
+            return Response({
+                "stdout": stdout,
+                "stderr": stderr,
+                "exit_code": exit_code
+            })
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)

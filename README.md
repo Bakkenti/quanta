@@ -1103,6 +1103,7 @@ Access it at `http://localhost:8000/`
 | `POST` | `/ckeditor5/image_upload/` | Upload images            |
 | `GET`  | `/keep-in-touch/`          | List all responses       |
 | `POST` | `/keep-in-touch/`          | Leave a response         |
+| `POST` | `/compiler/`               | Test a code              |
 
 #### **GET /mostpopularcourse/**
 
@@ -1213,6 +1214,25 @@ Access it at `http://localhost:8000/`
         "phone": "+1234567890", //optional
         "message": "I want to keep in touch about your platform."
     }
+```
+
+#### **POST /keep-in-touch/**
+
+**Body Request:**
+ ```json   
+{
+  "language": "python",
+  "code": "print('Hello')"
+}
+```
+
+**Response:**
+ ```json   
+{
+    "stdout": "Hello\n",
+    "stderr": "",
+    "exit_code": 0
+}
 ```
 ---
 ## 🚀 Deployment
