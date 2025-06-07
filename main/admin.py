@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.contrib.auth.models import Group, User
 from django.utils.translation import gettext_lazy as _
 from django.utils.html import format_html
-from .models import Author, Course, Module, Lesson, Student, Review, Advertisement, Category, ProgrammingLanguage
+from .models import Author, Course, Module, Lesson, Student, Review, Advertisement, Category, ProgrammingLanguage, Certificate
 from exercises.models import Exercise, ExerciseOption, ExerciseSolution
 import nested_admin
 from django_ckeditor_5.fields import CKEditor5Field
@@ -96,8 +96,7 @@ class AuthorAdmin(admin.ModelAdmin):
     ]
     search_fields = ['user__username']
 
-    # Сделай ВСЕ поля editables!
-    # readonly_fields = []   # не нужно, если не хочешь сделать что-то только для чтения
+
 
     fieldsets = (
         (None, {
@@ -306,3 +305,19 @@ class CategoryAdmin(admin.ModelAdmin):
     def courses_count(self, obj):
         return obj.courses.count()
     courses_count.short_description = 'Courses Count'
+
+@admin.register(Certificate)
+class CertificateAdmin(admin.ModelAdmin):
+    list_display = ('user', 'course', 'issued_at', 'token_short', 'has_pdf_and_hash')
+    search_fields = ('user__username', 'course__title', 'token')
+    list_filter = ('issued_at',)
+    readonly_fields = ('user', 'course', 'pdf_file', 'token', 'hash_code', 'issued_at')
+
+    def token_short(self, obj):
+        return str(obj.token)[:8] + "..."
+    token_short.short_description = "Token (short)"
+
+    def has_pdf_and_hash(self, obj):
+        return bool(obj.pdf_file and obj.hash_code)
+    has_pdf_and_hash.boolean = True
+    has_pdf_and_hash.short_description = "Valid?"

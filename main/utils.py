@@ -1,0 +1,62 @@
+import os
+import uuid
+import qrcode
+import hashlib
+from io import BytesIO
+from django.conf import settings
+from django.core.files.base import ContentFile
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.utils import ImageReader
+from .models import Certificate
+
+
+def generate_certificate(user, course):
+
+    hash_code = hashlib.sha256(f"{user.id}-{course.id}-{user.username}".encode()).hexdigest()
+    token = uuid.uuid4()
+
+    verify_url = f"127.0.0.1:8000/certificate/verify/{token}/"
+
+    qr_img = qrcode.make(verify_url)
+    qr_io = BytesIO()
+    qr_img.save(qr_io, format='PNG')
+    qr_io.seek(0)
+    qr_reader = ImageReader(qr_io)
+
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=landscape(A4))
+    width, height = landscape(A4)
+
+    template_path = os.path.join(settings.MEDIA_ROOT, "certificates", "certificate_template.png")
+
+    if os.path.exists(template_path):
+        p.drawImage(template_path, 0, 0, width=width, height=height)
+
+    p.setFont("Helvetica-Bold", 24)
+    p.drawString(350, 253, f"{user.username}")
+
+    p.setFont("Helvetica", 14)
+    p.drawString(560, 220,  course.title)
+
+    p.drawImage(qr_reader, 551, 100, width=100, height=100)
+
+    p.setFont("Helvetica-Oblique", 12)
+    p.drawString(568, 90, user.date_joined.strftime('%Y-%m-%d'))
+
+    p.showPage()
+    p.save()
+
+    buffer.seek(0)
+
+    cert = Certificate.objects.create(
+        user=user,
+        course=course,
+        token=token,
+        hash_code=hash_code
+    )
+
+    file_name = f"certificate_{user.username}_{course.id}.pdf"
+    cert.pdf_file.save(f"{file_name}", ContentFile(buffer.read()))
+
+    return cert

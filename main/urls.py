@@ -11,7 +11,7 @@ from .views import (
     SiteStats, SiteReviewView, CategoryList, KeepInTouchView,
     ApplyAuthor, ApplyJournalist, AppliesStatus, WithdrawApplication, ConfirmEmail, SurveyRecommendationView,
     ConspectChatListView, ConspectHistoryView, ConspectSendMessageView, ConspectStartChatView,
-    CodeExecutionView,
+    CodeExecutionView, MyCertificatesView, CertificateVerifyView, TriggerCertificateView
 )
 
 urlpatterns = [
@@ -57,5 +57,8 @@ urlpatterns = [
     path("conspect/start/", ConspectStartChatView.as_view(), name="conspect-start"),
     path("conspect/<int:chat_id>/", ConspectHistoryView.as_view(), name="conspect-history"),
     path("conspect/<int:chat_id>/send-message/", ConspectSendMessageView.as_view(), name="conspect-message"),
-    path("compiler/", CodeExecutionView.as_view(), name="code-execute")
+    path("compiler/", CodeExecutionView.as_view(), name="code-execute"),
+    path("certificates/", MyCertificatesView.as_view(), name="my-certificates"),
+    path("certificate/verify/<uuid:token>/", CertificateVerifyView.as_view(), name="certificate-verify"),
+    path("certificates/generate/<int:course_id>/", TriggerCertificateView.as_view(), name="generate-certificate"),
 ]

@@ -3,6 +3,7 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import generics, status
+from django.db import IntegrityError
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, BasePermission
@@ -13,7 +14,7 @@ from rest_framework.generics import RetrieveAPIView, ListAPIView
 from django.contrib.sessions.middleware import SessionMiddleware
 from dj_rest_auth.views import LoginView
 from .models import (Course, Lesson, Student, Author, Review, Module, MostPopularCourse, BestCourse, Advertisement, Category, SiteReview,
-                     KeepInTouch, ProgrammingLanguage, ConspectChat, ConspectMessage)
+                     KeepInTouch, ProgrammingLanguage, ConspectChat, ConspectMessage, Certificate)
 from .serializers import (RegistrationSerializer, CategorySerializer, CourseSerializer, LessonSerializer, ModuleSerializer, ReviewSerializer,
                           ProfileSerializer, AdvertisementSerializer, UserSerializer, SiteReviewSerializer, KeepInTouchSerializer,
                           ConspectMessageSerializer, SendMessageSerializer, ConspectChatSerializer)
@@ -30,6 +31,7 @@ from allauth.socialaccount.providers.github.views import GitHubOAuth2Adapter
 from allauth.account.models import EmailAddress, EmailConfirmation, EmailConfirmationHMAC
 from exercises.ai_helper import forward_answers_to_ai, generate_conspect_response, execute_code
 from quanta import settings
+from .utils import generate_certificate
 import urllib.parse
 import json
 import requests
@@ -943,3 +945,55 @@ class CodeExecutionView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
+class MyCertificatesView(APIView):
+    def get(self, request):
+        certs = Certificate.objects.filter(user=request.user)
+        data = [{
+            "course": cert.course.title,
+            "issued_at": cert.issued_at,
+            "pdf_url": request.build_absolute_uri(cert.pdf_file.url),
+            "verify_url": f"https://your-domain.com/certificate/verify/{cert.token}/"
+        } for cert in certs]
+        return Response(data)
+
+class CertificateVerifyView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, token):
+        cert = get_object_or_404(Certificate, token=token)
+        return Response({
+            "user": cert.user.username,
+            "course": cert.course.title,
+            "issued_at": cert.issued_at,
+            "hash_code": cert.hash_code,
+            "pdf_url": request.build_absolute_uri(cert.pdf_file.url),
+        })
+
+class TriggerCertificateView(APIView):
+    def post(self, request, course_id):
+        course = get_object_or_404(Course, id=course_id)
+
+        try:
+            # Попробуем сгенерировать сертификат
+            cert = generate_certificate(request.user, course)
+        except IntegrityError as e:
+            logger.error(f"IntegrityError: {str(e)}")
+            return Response({
+                "error": "An error occurred while generating the certificate. Duplicate entry?",
+                "details": str(e)
+            }, status=400)
+        except Exception as e:
+            # Логируем любую другую ошибку
+            logger.error(f"Error during certificate generation: {str(e)}")
+            return Response({
+                "error": "An error occurred while generating the certificate.",
+                "details": str(e)
+            }, status=500)
+
+        return Response({
+            "message": "Certificate generated",
+            "pdf_url": request.build_absolute_uri(cert.pdf_file.url)
+        })
+
+

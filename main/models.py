@@ -1,4 +1,5 @@
 from django.db import models
+import uuid
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.contrib.auth.hashers import make_password, check_password
@@ -305,3 +306,17 @@ class ConspectMessage(models.Model):
     role = models.CharField(max_length=10, choices=[('user', 'user'), ('assistant', 'assistant')])
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
+
+
+class Certificate(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="certificates")
+    course = models.ForeignKey('Course', on_delete=models.CASCADE)
+    issued_at = models.DateTimeField(auto_now_add=True)
+
+    token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    hash_code = models.CharField(max_length=64)
+
+    pdf_file = models.FileField(upload_to="certificates/")
+
+    def __str__(self):
+        return f"Certificate for {self.user.username} on {self.course.title}"
