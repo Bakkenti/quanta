@@ -870,6 +870,10 @@ class ConspectHistoryView(APIView):
             "messages": serialized.data
         })
 
+    def delete(self, request, chat_id):
+        chat = get_object_or_404(ConspectChat, id=chat_id, user=request.user)
+        chat.delete()
+        return Response({"message": "Chat and all associated messages deleted."}, status=204)
 
 class ConspectSendMessageView(APIView):
     pagination_class = None
@@ -917,3 +921,4 @@ class ConspectStartChatView(APIView):
         )
 
         return Response({"chat_id": chat.id}, status=201)
+

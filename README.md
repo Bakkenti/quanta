@@ -916,12 +916,12 @@ Access it at `http://localhost:8000/`
 
 ### **Endpoints Overview**
 
-| Method | Endpoint                    | Description                            |
-| ------ | --------------------------- |----------------------------------------|
-| `POST` | `/conspect/start/`          | Start new chat                         |
-| `GET`  | `/conspect/`                | Get a list of all chats                |
-| `GET`  | `/conspect/<chat_id>/`      | History of messages of certain chat    |
-| `POST` | `/conspect/<chat_id>/send/` | Send a message to AI and get an answer |
+| Method | Endpoint                            | Description                            |
+| ------ |-------------------------------------|----------------------------------------|
+| `POST` | `/conspect/start/`                  | Start new chat                         |
+| `GET`  | `/conspect/`                        | Get a list of all chats                |
+| `GET`  | `/conspect/<chat_id>/`              | History of messages of certain chat    |
+| `POST` | `/conspect/<chat_id>/send-message/` | Send a message to AI and get an answer |
 
 ---
 
@@ -991,7 +991,7 @@ Access it at `http://localhost:8000/`
 
 
 
-**POST /conspect/3/send/**
+**POST /conspect/3/send-message/**
 
 ```json
 {

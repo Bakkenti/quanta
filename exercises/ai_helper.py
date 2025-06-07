@@ -54,13 +54,10 @@ def clean_language_name(s):
 def forward_answers_to_ai(answers: str) -> dict:
     try:
         payload = {"question": answers}
-        print("\n[AI REQUEST] Sending to:", RECOMMENDATION_URL)
-        print("[AI REQUEST] Payload:", payload)
 
         start_time = time.time()
         response = requests.post(RECOMMENDATION_URL, json=payload, timeout=60)
         duration = time.time() - start_time
-        print(f"[AI RESPONSE] Status: {response.status_code} in {duration:.2f}s")
 
         if response.status_code != 200:
             raise Exception(f"AI service failed with {response.status_code}: {response.text[:300]}")
@@ -70,7 +67,6 @@ def forward_answers_to_ai(answers: str) -> dict:
         except json.JSONDecodeError:
             raise Exception("Failed to parse JSON from AI response")
 
-        print("[AI RESPONSE] Result preview:", str(data)[:400])
         return data
 
     except Timeout:

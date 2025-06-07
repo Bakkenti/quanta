@@ -54,6 +54,6 @@ urlpatterns = [
     path("conspect/", ConspectChatListView.as_view(), name="conspect-list"),
     path("conspect/start/", ConspectStartChatView.as_view(), name="conspect-start"),
     path("conspect/<int:chat_id>/", ConspectHistoryView.as_view(), name="conspect-history"),
-    path("conspect/<int:chat_id>/message/", ConspectSendMessageView.as_view(), name="conspect-message"),
+    path("conspect/<int:chat_id>/send-message/", ConspectSendMessageView.as_view(), name="conspect-message"),
 
 ]

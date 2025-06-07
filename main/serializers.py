@@ -55,7 +55,6 @@ class RegistrationSerializer(serializers.Serializer):
 
 class CustomLoginSerializer(LoginSerializer):
     def validate(self, attrs):
-        # пробуем авторизовать пользователя
         user = authenticate(request=self.context.get('request'), **attrs)
 
         if not user:
@@ -63,14 +62,12 @@ class CustomLoginSerializer(LoginSerializer):
                 'non_field_errors': [_('Invalid credentials.')]
             })
 
-        # проверяем подтверждение email
         verified = EmailAddress.objects.filter(user=user, verified=True).exists()
         if not verified:
             raise serializers.ValidationError({
                 'non_field_errors': [_('Please confirm your email before logging in.')]
             })
 
-        # устанавливаем user в self (обязательно!)
         self.user = user
 
         return super().validate(attrs)
