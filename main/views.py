@@ -953,7 +953,7 @@ class MyCertificatesView(APIView):
             "course": cert.course.title,
             "issued_at": cert.issued_at,
             "pdf_url": request.build_absolute_uri(cert.pdf_file.url),
-            "verify_url": f"https://your-domain.com/certificate/verify/{cert.token}/"
+            "verify_url": f"https://quant.up.railway.app/certificate/verify/{cert.token}/"
         } for cert in certs]
         return Response(data)
 
