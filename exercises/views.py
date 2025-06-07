@@ -1,9 +1,12 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Exercise, ExerciseOption, Lesson, LessonAttempt
+from .models import Exercise, ExerciseOption, Lesson, LessonAttempt, HintRequestLog
 from .serializers import ExerciseSerializer, LessonAttemptSerializer
 from .ai_helper import execute_code, get_code_hint
+from django.utils.timezone import now, timedelta
+from django.utils import timezone
+
 
 class AuthorExerciseListCreate(generics.ListCreateAPIView):
     serializer_class = ExerciseSerializer
@@ -142,30 +145,82 @@ class LessonBulkSubmit(APIView):
         }, status=status.HTTP_201_CREATED)
 
 class CodeHintView(APIView):
-    def post(self, request, course_id, module_id, lesson_id, exercise_id):
 
-        exercise = Exercise.objects.get(
-            id=exercise_id, type='code',
-            lesson__lesson_id=lesson_id,
-            lesson__module__module_id=module_id,
-            lesson__module__course__id=course_id
-        )
+    def get(self, request, course_id, module_id, lesson_id, exercise_id):
+        user = request.user
+        if not user.is_authenticated:
+            return Response({"error": "Authentication required."}, status=401)
+
+        time_threshold = now() - timedelta(hours=12)
+        recent_count = HintRequestLog.objects.filter(user=user, requested_at__gte=time_threshold).count()
+        remaining = max(0, 5 - recent_count)
+        next_available = None
+
+        if remaining == 0:
+            oldest = HintRequestLog.objects.filter(user=user).order_by('requested_at').first()
+            if oldest:
+                next_available = max(0, int((oldest.requested_at + timedelta(hours=12) - now()).total_seconds() // 60))
+
+        return Response({
+            "remaining": remaining,
+            "limit": 5,
+            "next_available_in_minutes": next_available if next_available is not None else 0
+        })
+
+    def post(self, request, course_id, module_id, lesson_id, exercise_id):
+        user = request.user
+
+        limit = 5
+        window_start = timezone.now() - timedelta(hours=12)
+        recent_requests = HintRequestLog.objects.filter(user=user, requested_at__gte=window_start)
+        recent_count = recent_requests.count()
+        remaining = max(0, limit - recent_count)
+
+        if recent_count >= limit:
+            next_available_time = recent_requests.earliest("requested_at").requested_at + timedelta(hours=12)
+            wait_minutes = int((next_available_time - timezone.now()).total_seconds() // 60)
+
+            return Response({
+                "error": "You have reached the maximum number of hints allowed (5 per 12 hours).",
+                "next_available_in_minutes": wait_minutes,
+                "limit": limit,
+                "remaining": 0
+            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+        try:
+            exercise = Exercise.objects.get(
+                id=exercise_id, type='code',
+                lesson__lesson_id=lesson_id,
+                lesson__module__module_id=module_id,
+                lesson__module__course__id=course_id
+            )
+        except Exercise.DoesNotExist:
+            return Response({"error": "Exercise not found."}, status=404)
+
         submitted_code = request.data.get("submitted_code", "")
         question = f"{exercise.title}\n{exercise.description or ''}"
+
         if exercise.language and getattr(exercise.language, "name", None):
             prompt_language = exercise.language.name.lower()
         elif hasattr(exercise.lesson.module.course, "language") and exercise.lesson.module.course.language:
             prompt_language = exercise.lesson.module.course.language.name.lower()
         else:
             prompt_language = "python"
+
         hint_text, fixed_code = get_code_hint(
             input_code=submitted_code,
             question=question,
             prompt_language=prompt_language
         )
 
+        HintRequestLog.objects.create(user=user)
 
-        return Response({"hint": hint_text, "fixed_code": fixed_code})
+        return Response({
+            "hint": hint_text,
+            "fixed_code": fixed_code,
+            "limit": limit,
+            "remaining": remaining - 1
+        }, status=200)
 
 class BulkDeleteExercises(APIView):
     def delete(self, request, course_id, module_id, lesson_id):

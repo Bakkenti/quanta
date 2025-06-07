@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 from main.models import Lesson, Student, ProgrammingLanguage
 
 class Exercise(models.Model):
@@ -51,3 +52,10 @@ class LessonAttempt(models.Model):
     score = models.IntegerField(default=0)
     def __str__(self):
         return f"LessonAttempt by {self.student} on {self.lesson}"
+
+class HintRequestLog(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    requested_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} @ {self.requested_at}"

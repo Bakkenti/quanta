@@ -661,6 +661,7 @@ Access it at `http://localhost:8000/`
 | `GET`    | `/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/exercises`                    | List all exercises of chosen lesson for student     |
 | `GET`    | `/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/exercises/<exercise_id>`      | See details of specific exercise                    |
 | `POST`   | `/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/submit-answer`                | Submit answer (code/mcq)                            |
+| `GET`    | `/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/exercises/<exercise_id>/hint` | View actual information about hints                 |
 | `POST`   | `/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/exercises/<exercise_id>/hint` | Request hint                                        |
 
 #### **GET /author/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/exercises/**
@@ -891,6 +892,17 @@ Access it at `http://localhost:8000/`
 }
 ```
 
+### **GET /courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/exercises/<exercise_id>/hint**
+
+**Response**
+```json
+{
+    "remaining": 0,
+    "limit": 5,
+    "next_available_in_minutes": 678
+}
+```
+
 #### **POST /courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/exercises/<exercise_id>/hint**
 *for code tasks only*
 
@@ -901,10 +913,24 @@ Access it at `http://localhost:8000/`
 }
 ```
 **Response**
+
+***If hints available***
 ```json
 {
   "hint": "The function name should be `isPrint` for consistency with the task description. Additionally, the function should take an argument to print.\n\n",
-  "fixed_code": "def isPrint(message):\n    print(message)\n\nisPrint('Hello')"
+  "fixed_code": "def isPrint(message):\n    print(message)\n\nisPrint('Hello')",
+   "remaining": 4
+
+}
+```
+
+***If no hints available (limit)***
+```json
+{
+  "error": "You have reached the maximum number of hints allowed (5 per 12 hours).",
+  "next_available_in_minutes": 720,
+  "limit": 5,
+  "remaining": 0
 }
 ```
 ---
