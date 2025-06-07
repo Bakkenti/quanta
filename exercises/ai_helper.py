@@ -2,11 +2,11 @@ import requests
 import re
 from main.models import ConspectMessage
 
-EXECUTE_URL = "https://quanta-production.up.railway.app/execute"
-AI_FEEDBACK_URL = "https://quanta-production.up.railway.app/feedback"
-ASK_AI_URL = "https://quanta-production.up.railway.app/ask"
-RECOMMENDATION_URL = "https://quanta-production.up.railway.app/recomend"
-CONSPECT_URL = "https://quanta-production.up.railway.app/conspect"
+EXECUTE_URL = "https://microservice-quanta.up.railway.app/execute"
+AI_FEEDBACK_URL = "https://microservice-quanta.up.railway.app/feedback"
+ASK_AI_URL = "https://microservice-quanta.up.railway.app/ask"
+RECOMMENDATION_URL = "https://microservice-quanta.up.railway.app/recomend"
+CONSPECT_URL = "https://microservice-quanta.up.railway.app/conspect"
 
 
 def execute_code(language, code):
