@@ -78,11 +78,10 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ('pk', 'username', 'email')
 
 class ProfileSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(source='user.email')
 
     class Meta:
         model = Student
-        fields = ['email', 'avatar', 'about', 'birthday', 'phone_number', 'gender']
+        fields = ['avatar', 'about', 'birthday', 'phone_number', 'gender']
 
     def validate_email(self, value):
         user = self.instance.user if self.instance else None

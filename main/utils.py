@@ -8,7 +8,13 @@ from django.core.files.base import ContentFile
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.utils import ImageReader
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from .models import Certificate
+
+FONT_DIR = os.path.join(settings.BASE_DIR, "static", "fonts")
+pdfmetrics.registerFont(TTFont("LibreBaskerville", os.path.join(FONT_DIR, "LibreBaskerville.ttf")))
+pdfmetrics.registerFont(TTFont("Caladea", os.path.join(FONT_DIR, "Caladea.ttf")))
 
 
 def generate_certificate(user, course):
@@ -33,15 +39,18 @@ def generate_certificate(user, course):
     if os.path.exists(template_path):
         p.drawImage(template_path, 0, 0, width=width, height=height)
 
-    p.setFont("Helvetica-Bold", 24)
+    p.setFont("LibreBaskerville", 24)
     p.drawString(350, 253, f"{user.username}")
 
-    p.setFont("Helvetica", 14)
+    p.setFont("Caladea", 14)
     p.drawString(560, 220,  course.title)
+
+    p.setFont("Times-Roman", 24)
+    p.drawString(220, 120, f"{course.author.user.username}")
 
     p.drawImage(qr_reader, 551, 100, width=100, height=100)
 
-    p.setFont("Helvetica-Oblique", 12)
+    p.setFont("Times-Roman", 12)
     p.drawString(568, 90, user.date_joined.strftime('%Y-%m-%d'))
 
     p.showPage()

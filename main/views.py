@@ -974,17 +974,22 @@ class TriggerCertificateView(APIView):
     def post(self, request, course_id):
         course = get_object_or_404(Course, id=course_id)
 
+        existing = Certificate.objects.filter(user=request.user, course=course).first()
+        if existing:
+            return Response({
+                "error": "You already have a certificate for this course.",
+                "pdf_url": request.build_absolute_uri(existing.pdf_file.url)
+            }, status=400)
+
         try:
-            # Попробуем сгенерировать сертификат
             cert = generate_certificate(request.user, course)
         except IntegrityError as e:
             logger.error(f"IntegrityError: {str(e)}")
             return Response({
-                "error": "An error occurred while generating the certificate. Duplicate entry?",
+                "error": "An error occurred while generating the certificate. Possibly a duplicate.",
                 "details": str(e)
             }, status=400)
         except Exception as e:
-            # Логируем любую другую ошибку
             logger.error(f"Error during certificate generation: {str(e)}")
             return Response({
                 "error": "An error occurred while generating the certificate.",
@@ -992,7 +997,7 @@ class TriggerCertificateView(APIView):
             }, status=500)
 
         return Response({
-            "message": "Certificate generated",
+            "message": "Certificate generated successfully.",
             "pdf_url": request.build_absolute_uri(cert.pdf_file.url)
         })
 

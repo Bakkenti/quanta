@@ -314,7 +314,7 @@ class Certificate(models.Model):
     issued_at = models.DateTimeField(auto_now_add=True)
 
     token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    hash_code = models.CharField(max_length=64)
+    hash_code = models.CharField(max_length=64, unique=True)
 
     pdf_file = models.FileField(upload_to="certificates/")
 
