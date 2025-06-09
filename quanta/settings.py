@@ -79,7 +79,7 @@ REST_AUTH = {
 
 LOGIN_URL = '/login/'
 
-SITE_ID = 3
+SITE_ID = 4
 
 ACCOUNT_LOGIN_METHODS = ['username', 'email']
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
