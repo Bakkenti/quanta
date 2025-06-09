@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Author, Student, Course, Module, Lesson, Review, Advertisement, Category, SiteReview, KeepInTouch, ConspectChat, ConspectMessage
+from .models import (Author, Student, Course, Module, Lesson, Review, Advertisement, Category, SiteReview, KeepInTouch,
+                     ConspectChat, ConspectMessage, ProjectToRMessage, ProjectToRChat)
 from dj_rest_auth.serializers import LoginSerializer
 from django.contrib.auth.models import User
 from django_ckeditor_5.fields import CKEditor5Field
@@ -232,3 +233,14 @@ class ConspectChatSerializer(serializers.ModelSerializer):
     class Meta:
         model = ConspectChat
         fields = ['id', 'topic', 'language', 'rules_style', 'created_at']
+
+
+class ProjectToRMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectToRMessage
+        fields = ['id', 'role', 'content', 'timestamp']
+
+class ProjectToRChatSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectToRChat
+        fields = ['id', 'topic', 'created_at']

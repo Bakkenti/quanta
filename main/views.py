@@ -14,10 +14,11 @@ from rest_framework.generics import RetrieveAPIView, ListAPIView
 from django.contrib.sessions.middleware import SessionMiddleware
 from dj_rest_auth.views import LoginView
 from .models import (Course, Lesson, Student, Author, Review, Module, MostPopularCourse, BestCourse, Advertisement, Category, SiteReview,
-                     KeepInTouch, ProgrammingLanguage, ConspectChat, ConspectMessage, Certificate, LessonProgress)
+                     KeepInTouch, ProgrammingLanguage, ConspectChat, ConspectMessage, Certificate, CourseProgress, LessonProgress,
+                     ProjectToRChat, ProjectToRMessage)
 from .serializers import (RegistrationSerializer, CategorySerializer, CourseSerializer, LessonSerializer, ModuleSerializer, ReviewSerializer,
                           ProfileSerializer, AdvertisementSerializer, UserSerializer, SiteReviewSerializer, KeepInTouchSerializer,
-                          ConspectMessageSerializer, SendMessageSerializer, ConspectChatSerializer)
+                          ConspectMessageSerializer, SendMessageSerializer, ConspectChatSerializer, ProjectToRMessageSerializer, ProjectToRChatSerializer)
 from blog.models import BlogPost
 from exercises.models import Exercise, LessonAttempt
 
@@ -1027,3 +1028,75 @@ def all_exercises_completed(student, lesson):
             correct_ids.add(ans.get('exercise_id'))
 
     return all(e.id in correct_ids for e in exercises)
+
+
+class ProjectToRChatListView(APIView):
+
+    def get(self, request):
+        chats = ProjectToRChat.objects.filter(user=request.user).order_by('-created_at')
+        serializer = ProjectToRChatSerializer(chats, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        topic = request.data.get('topic', '')
+        if not topic:
+            return Response({'error': 'Topic is required'}, status=400)
+        chat = ProjectToRChat.objects.create(user=request.user, topic=topic)
+        return Response({'chat_id': chat.id}, status=201)
+
+class ProjectToRHistoryView(APIView):
+
+    def get(self, request, chat_id):
+        chat = ProjectToRChat.objects.filter(user=request.user, id=chat_id).first()
+        if not chat:
+            return Response({'error': 'Not found'}, status=404)
+        messages = chat.messages.order_by('timestamp')
+        serializer = ProjectToRMessageSerializer(messages, many=True)
+        return Response({
+            'chat_id': chat.id,
+            'topic': chat.topic,
+            'messages': serializer.data
+        })
+
+    def delete(self, request, chat_id):
+        chat = ProjectToRChat.objects.filter(user=request.user, id=chat_id).first()
+        if not chat:
+            return Response({'error': 'Not found'}, status=404)
+        chat.delete()
+        return Response({'message': 'Chat and all associated messages deleted.'}, status=204)
+
+class ProjectToRSendMessageView(APIView):
+
+    def post(self, request, chat_id):
+        chat = ProjectToRChat.objects.filter(user=request.user, id=chat_id).first()
+        if not chat:
+            return Response({'error': 'Not found'}, status=404)
+        content = request.data.get('content', '')
+        if not content:
+            return Response({'error': 'Content required'}, status=400)
+        ProjectToRMessage.objects.create(chat=chat, role='user', content=content)
+        history = chat.messages.order_by('timestamp')
+        history_text = ""
+        for m in history:
+            history_text += f"{m.role}: {m.content}\n"
+        try:
+            response = requests.post(
+                'https://microservice-quanta.up.railway.app/pet',
+                json={
+                    "question": content,
+                    "input": history_text,
+                    "language": ""
+                },
+                timeout=30
+            )
+            ai_text = response.json().get("result", "AI error")
+        except Exception as e:
+            ai_text = f"Error: {str(e)}"
+        ProjectToRMessage.objects.create(chat=chat, role='assistant', content=ai_text)
+        messages = chat.messages.order_by('timestamp')
+        serializer = ProjectToRMessageSerializer(messages, many=True)
+        return Response({
+            'chat_id': chat.id,
+            'messages': serializer.data
+        })
+

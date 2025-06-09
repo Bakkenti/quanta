@@ -342,3 +342,15 @@ class CourseProgress(models.Model):
 
     class Meta:
         unique_together = ('student', 'course')
+
+
+class ProjectToRChat(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    topic = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class ProjectToRMessage(models.Model):
+    chat = models.ForeignKey(ProjectToRChat, on_delete=models.CASCADE, related_name='messages')
+    role = models.CharField(max_length=10, choices=[('user', 'user'), ('assistant', 'assistant')])
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
