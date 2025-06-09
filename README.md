@@ -942,12 +942,13 @@ Access it at `http://localhost:8000/`
 
 ### **Endpoints Overview**
 
-| Method | Endpoint                            | Description                            |
-| ------ |-------------------------------------|----------------------------------------|
-| `POST` | `/conspect/start/`                  | Start new chat                         |
-| `GET`  | `/conspect/`                        | Get a list of all chats                |
-| `GET`  | `/conspect/<chat_id>/`              | History of messages of certain chat    |
-| `POST` | `/conspect/<chat_id>/send-message/` | Send a message to AI and get an answer |
+| Method   | Endpoint                            | Description                            |
+|----------|-------------------------------------|----------------------------------------|
+| `POST`   | `/conspect/start/`                  | Start new chat                         |
+| `GET`    | `/conspect/`                        | Get a list of all chats                |
+| `GET`    | `/conspect/<chat_id>/`              | History of messages of certain chat    |
+| `POST`   | `/conspect/<chat_id>/send-message/` | Send a message to AI and get an answer |
+| `DELETE` | `/conspect/<chat_id>/`              | Delete a chat with conspect            |
 | `POST`   | `/conspect/<chat_id>/pdf/`          | Generate a pdf of conspect             |
 
 ---
