@@ -45,37 +45,6 @@ class StudentAdmin(admin.ModelAdmin):
 class ProgrammingLanguageAdmin(admin.ModelAdmin):
     list_display = ('id', 'name')
 
-class AuthorAdminForm(forms.ModelForm):
-    user = forms.ModelChoiceField(
-        queryset=User.objects.filter(student__isnull=False, author__isnull=True),
-        label="Select Student to Promote",
-        required=True
-    )
-    class Meta:
-        model = Author
-        fields = ['user']
-    def clean_user(self):
-        user = self.cleaned_data['user']
-        if hasattr(user, 'author'):
-            raise ValidationError("This user is already an author.")
-        return user
-    def save(self, commit=True):
-        user = self.cleaned_data['user']
-        author = super().save(commit=False)
-        author.user = user
-        author_group, _ = Group.objects.get_or_create(name='Author')
-        user.groups.add(author_group)
-        user.save()
-        try:
-            student = user.student
-            student.role = "author"
-            student.save()
-        except Student.DoesNotExist:
-            pass
-        if commit:
-            author.save()
-        return author
-
 
 class StudentInline(admin.StackedInline):
     model = Student
@@ -84,30 +53,75 @@ class StudentInline(admin.StackedInline):
     max_num = 1
 
 
+class AuthorAdminForm(forms.ModelForm):
+    class Meta:
+        model = Author
+        fields = '__all__'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        author_status = cleaned_data.get("author_status")
+        author_reject_reason = cleaned_data.get("author_reject_reason")
+        journalist_status = cleaned_data.get("journalist_status")
+        journalist_reject_reason = cleaned_data.get("journalist_reject_reason")
+
+        return cleaned_data
+
+    def clean_user(self):
+        user = self.cleaned_data.get('user')
+        if not user:
+            return user
+        if hasattr(user, 'author'):
+            raise forms.ValidationError("This user is already an author.")
+        return user
+
+    def save(self, commit=True):
+        user = self.cleaned_data.get('user')
+        author = super().save(commit=False)
+        if user:
+            author.user = user
+            author_group, _ = Group.objects.get_or_create(name='Author')
+            user.groups.add(author_group)
+            user.save()
+            try:
+                student = user.student
+                student.role = "author"
+                student.save()
+            except Exception:
+                pass
+        if commit:
+            author.save()
+        return author
+
 @admin.register(Author)
 class AuthorAdmin(admin.ModelAdmin):
+    form = AuthorAdminForm
     list_display = [
-        'user',
-        'get_user_role',
-        'author_status',
-        'journalist_status',
-        'author_reject_reason_short',
-        'journalist_reject_reason_short',
+        'user', 'get_user_role', 'author_status', 'journalist_status',
+        'author_reject_reason_short', 'journalist_reject_reason_short'
     ]
     search_fields = ['user__username']
 
+    # fieldsets: 'user' только для создания, не для изменения
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = [
+            (None, {
+                'fields': (
+                    # 'user' только если создаём нового автора
+                    (('user',) if obj is None else ()) +
+                    ('is_author', 'is_journalist'),
+                    ('author_status', 'author_reject_reason'),
+                    ('journalist_status', 'journalist_reject_reason'),
+                )
+            }),
+        ]
+        return fieldsets
 
-
-    fieldsets = (
-        (None, {
-            'fields': (
-                'user',
-                ('is_author', 'is_journalist'),
-                ('author_status', 'author_reject_reason'),
-                ('journalist_status', 'journalist_reject_reason'),
-            )
-        }),
-    )
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        if obj and "user" in form.base_fields:
+            form.base_fields["user"].disabled = True  # или .widget = forms.HiddenInput() если совсем скрыть
+        return form
 
     def get_user_role(self, obj):
         if hasattr(obj.user, "student"):
@@ -126,18 +140,12 @@ class AuthorAdmin(admin.ModelAdmin):
     journalist_reject_reason_short.short_description = "Journalist Reject Reason"
 
     def save_model(self, request, obj, form, change):
-        if obj.author_status == "rejected" and not obj.author_reject_reason:
-            from django.core.exceptions import ValidationError
-            raise ValidationError("Please provide a reason for author rejection!")
         if obj.author_status == "approved":
             obj.author_reject_reason = ""
             obj.is_author = True
         if obj.author_status in ["none", "pending"]:
             obj.is_author = False
 
-        if obj.journalist_status == "rejected" and not obj.journalist_reject_reason:
-            from django.core.exceptions import ValidationError
-            raise ValidationError("Please provide a reason for journalist rejection!")
         if obj.journalist_status == "approved":
             obj.journalist_reject_reason = ""
             obj.is_journalist = True
