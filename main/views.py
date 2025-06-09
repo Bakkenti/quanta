@@ -1279,7 +1279,7 @@ class ConspectPDFView(APIView):
         filename = f"conspect_{request.user.id}_{uuid.uuid4().hex}.pdf"
         filepath = f"pdf/conspect/{filename}"
         default_storage.save(filepath, buffer)
-        file_url = request.build_absolute_uri(default_storage.url(filepath))
+        file_url = default_storage.url(filepath)
 
         delete_later(filepath, 300)
 
@@ -1313,7 +1313,7 @@ class ProjectToRPDFView(APIView):
         filename = f"project_tor_{request.user.id}_{uuid.uuid4().hex}.pdf"
         filepath = f"pdf/project_tor/{filename}"
         default_storage.save(filepath, buffer)
-        file_url = request.build_absolute_uri(default_storage.url(filepath))
+        file_url = default_storage.url(filepath)
 
         delete_later(filepath, 300)
 
