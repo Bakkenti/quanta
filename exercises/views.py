@@ -6,6 +6,9 @@ from .serializers import ExerciseSerializer, LessonAttemptSerializer
 from .ai_helper import execute_code, get_code_hint
 from django.utils.timezone import now, timedelta
 from django.utils import timezone
+from main.models import LessonProgress
+from main.utils import update_course_progress
+from main.views import all_exercises_completed
 
 
 class AuthorExerciseListCreate(generics.ListCreateAPIView):
@@ -87,6 +90,7 @@ class StudentExerciseDetail(generics.RetrieveAPIView):
 
 
 class LessonBulkSubmit(APIView):
+
     def post(self, request, course_id, module_id, lesson_id):
         student = request.user.student
         lesson = Lesson.objects.get(
@@ -135,9 +139,21 @@ class LessonBulkSubmit(APIView):
         lesson_attempt = LessonAttempt.objects.create(
             student=student,
             lesson=lesson,
-            answers=answers,
+            answers=results,
             score=correct_count
         )
+
+        LessonProgress.objects.update_or_create(
+            student=student,
+            lesson=lesson,
+            defaults={
+                'is_viewed': True,
+                'is_completed': all_exercises_completed(student, lesson),
+                'progress_percent': 100.0
+            }
+        )
+        update_course_progress(student.user, lesson.module.course)
+
         return Response({
             'attempt_id': lesson_attempt.id,
             'score': correct_count,

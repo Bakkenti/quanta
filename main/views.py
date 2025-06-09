@@ -14,11 +14,12 @@ from rest_framework.generics import RetrieveAPIView, ListAPIView
 from django.contrib.sessions.middleware import SessionMiddleware
 from dj_rest_auth.views import LoginView
 from .models import (Course, Lesson, Student, Author, Review, Module, MostPopularCourse, BestCourse, Advertisement, Category, SiteReview,
-                     KeepInTouch, ProgrammingLanguage, ConspectChat, ConspectMessage, Certificate)
+                     KeepInTouch, ProgrammingLanguage, ConspectChat, ConspectMessage, Certificate, LessonProgress)
 from .serializers import (RegistrationSerializer, CategorySerializer, CourseSerializer, LessonSerializer, ModuleSerializer, ReviewSerializer,
                           ProfileSerializer, AdvertisementSerializer, UserSerializer, SiteReviewSerializer, KeepInTouchSerializer,
                           ConspectMessageSerializer, SendMessageSerializer, ConspectChatSerializer)
 from blog.models import BlogPost
+from exercises.models import Exercise, LessonAttempt
 
 from blog.serializers import BlogPostSerializer
 from django.utils.functional import SimpleLazyObject
@@ -31,7 +32,7 @@ from allauth.socialaccount.providers.github.views import GitHubOAuth2Adapter
 from allauth.account.models import EmailAddress, EmailConfirmation, EmailConfirmationHMAC
 from exercises.ai_helper import forward_answers_to_ai, generate_conspect_response, execute_code
 from quanta import settings
-from .utils import generate_certificate
+from .utils import generate_certificate, update_course_progress
 import urllib.parse
 import json
 import requests
@@ -344,6 +345,16 @@ class LessonDetail(APIView):
     def get(self, request, course_id, module_id, lesson_id):
         module = get_object_or_404(Module, course__id=course_id, module_id=module_id)
         lesson = get_object_or_404(Lesson, module=module, lesson_id=lesson_id)
+
+        LessonProgress.objects.update_or_create(
+            student=request.user.student,
+            lesson=lesson,
+            defaults={
+                'is_viewed': True,
+                'progress_percent': 50.0
+            }
+        )
+        update_course_progress(request.user, lesson.module.course)
 
         lesson_data = {
             "id": lesson.lesson_id,
@@ -1001,4 +1012,18 @@ class TriggerCertificateView(APIView):
             "pdf_url": request.build_absolute_uri(cert.pdf_file.url)
         })
 
+def all_exercises_completed(student, lesson):
+    exercises = Exercise.objects.filter(lesson=lesson)
+    if not exercises.exists():
+        return True
 
+    latest_attempt = LessonAttempt.objects.filter(student=student, lesson=lesson).order_by('-created_at').first()
+    if not latest_attempt:
+        return False
+
+    correct_ids = set()
+    for ans in latest_attempt.answers:
+        if ans.get('is_correct'):
+            correct_ids.add(ans.get('exercise_id'))
+
+    return all(e.id in correct_ids for e in exercises)

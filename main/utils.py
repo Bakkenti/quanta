@@ -5,16 +5,49 @@ import hashlib
 from io import BytesIO
 from django.conf import settings
 from django.core.files.base import ContentFile
+from django.db import models
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from .models import Certificate
+from .models import Certificate, CourseProgress, LessonProgress, Lesson, Student
+from rest_framework.test import APIRequestFactory
 
 FONT_DIR = os.path.join(settings.BASE_DIR, "static", "fonts")
 pdfmetrics.registerFont(TTFont("LibreBaskerville", os.path.join(FONT_DIR, "LibreBaskerville.ttf")))
 pdfmetrics.registerFont(TTFont("Caladea", os.path.join(FONT_DIR, "Caladea.ttf")))
+
+def update_course_progress(user, course):
+    student = Student.objects.get(user=user)
+
+    total_lessons = Lesson.objects.filter(module__course=course).count()
+
+    total_progress = LessonProgress.objects.filter(
+        student=student,
+        lesson__module__course=course
+    ).aggregate(models.Sum('progress_percent'))['progress_percent__sum'] or 0
+
+    percent = round(total_progress / total_lessons, 2) if total_lessons else 0.0
+
+    CourseProgress.objects.update_or_create(
+        student=student,
+        course=course,
+        defaults={'progress_percent': percent}
+    )
+
+    if percent == 100.0 and not Certificate.objects.filter(user=user, course=course).exists():
+        from .views import TriggerCertificateView
+        request_factory = APIRequestFactory()
+        fake_request = request_factory.post(f"/certificates/generate/{course.id}/")
+        fake_request.user = user
+        view = TriggerCertificateView.as_view()
+        response = view(fake_request, course_id=course.id)
+        if hasattr(response, "status_code") and response.status_code >= 400:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Certificate generation failed: {response.data}")
+
 
 
 def generate_certificate(user, course):

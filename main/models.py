@@ -320,3 +320,25 @@ class Certificate(models.Model):
 
     def __str__(self):
         return f"Certificate for {self.user.username} on {self.course.title}"
+
+
+class LessonProgress(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='lesson_progress')
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
+    is_viewed = models.BooleanField(default=False)
+    is_completed = models.BooleanField(default=False)
+    progress_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.0)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('student', 'lesson')
+
+class CourseProgress(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='course_progress')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    progress_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.0)
+    is_completed = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('student', 'course')

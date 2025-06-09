@@ -292,10 +292,6 @@ Access it at `http://localhost:8000/`
 ```
 ---
 
-Вот как это лучше всего оформить для README, полностью в твоем стиле и с примерами (таблицами, запросами, примерами response/request):
-
----
-
 ### **Author/Journalist Applications**
 
 | Method | Endpoint                    | Description                                               |
