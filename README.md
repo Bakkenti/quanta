@@ -948,6 +948,7 @@ Access it at `http://localhost:8000/`
 | `GET`  | `/conspect/`                        | Get a list of all chats                |
 | `GET`  | `/conspect/<chat_id>/`              | History of messages of certain chat    |
 | `POST` | `/conspect/<chat_id>/send-message/` | Send a message to AI and get an answer |
+| `POST`   | `/conspect/<chat_id>/pdf/`          | Generate a pdf of conspect             |
 
 ---
 
@@ -1044,13 +1045,14 @@ Access it at `http://localhost:8000/`
 
 ### **Pet Projects Endpoints Overview**
 
-| Method   | Endpoint                                 | Description                            |
-|----------|------------------------------------------|----------------------------------------|
-| `POST`   | `/project-tor/`                          | Create a new ToR chat                         |
-| `GET`    | `/project-tor/`                          | Get all your ToR chats               |
-| `GET`    | `/project-tor/<chat_id>/`                | Get ToR chat history    |
-| `POST`   | `/project-tor/<chat_id>/send-message/`   | Send a new message in ToR chat (AI answer & updated history) |
-| `DELETE` | `/project-tor/<chat_id>//`               | Delete a ToR chat (with all its history) |
+| Method   | Endpoint                               | Description                                                  |
+|----------|----------------------------------------|--------------------------------------------------------------|
+| `POST`   | `/project-tor/`                        | Create a new ToR chat                                        |
+| `GET`    | `/project-tor/`                        | Get all your ToR chats                                       |
+| `GET`    | `/project-tor/<chat_id>/`              | Get ToR chat history                                         |
+| `POST`   | `/project-tor/<chat_id>/send-message/` | Send a new message in ToR chat (AI answer & updated history) |
+| `DELETE` | `/project-tor/<chat_id>/`              | Delete a ToR chat (with all its history)                     |
+| `POST`   | `/project_tor/<chat_id>/pdf/`          | Generate a pdf of plan content                               |
 
 ### Create a new ToR chat 
 

@@ -13,6 +13,7 @@ from rest_framework.test import APIRequestFactory
 from rest_framework.generics import RetrieveAPIView, ListAPIView
 from django.contrib.sessions.middleware import SessionMiddleware
 from dj_rest_auth.views import LoginView
+from reportlab.pdfbase.pdfmetrics import stringWidth
 from .models import (Course, Lesson, Student, Author, Review, Module, MostPopularCourse, BestCourse, Advertisement, Category, SiteReview,
                      KeepInTouch, ProgrammingLanguage, ConspectChat, ConspectMessage, Certificate, CourseProgress, LessonProgress,
                      ProjectToRChat, ProjectToRMessage)
@@ -38,7 +39,16 @@ import urllib.parse
 import json
 import requests
 import logging
-
+import os
+import uuid
+import time
+from io import BytesIO
+from django.conf import settings
+from django.http import JsonResponse
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import cm
+from reportlab.lib.colors import HexColor
 
 logger = logging.getLogger(__name__)
 
@@ -1100,3 +1110,211 @@ class ProjectToRSendMessageView(APIView):
             'messages': serializer.data
         })
 
+def replace_math_symbols(text):
+    import re
+    text = re.sub(r"\\\((.*?)\\\)", r"\1", text)  # убираем \( ... \)
+    text = text.replace(r"\times", "×")  # заменяем \times на ×
+    return text
+
+
+def split_text(text, font_name, font_size, max_width):
+    words = text.split()
+    lines = []
+    current_line = ""
+
+    for word in words:
+        test_line = current_line + " " + word if current_line else word
+        if stringWidth(test_line, font_name, font_size) <= max_width:
+            current_line = test_line
+        else:
+            lines.append(current_line)
+            current_line = word
+    if current_line:
+        lines.append(current_line)
+    return lines
+
+
+def draw_rich_text_line(p, x, y, text, font_regular, font_bold, font_size):
+    import re
+    pattern = r"\*\*(.+?)\*\*"
+    parts = re.split(pattern, replace_math_symbols(text))
+    is_bold = False
+    cursor_x = x
+
+    for part in parts:
+        font = font_bold if is_bold else font_regular
+        p.setFont(font, font_size)
+        p.drawString(cursor_x, y, part)
+        cursor_x += stringWidth(part, font, font_size)
+        is_bold = not is_bold
+
+
+def render_markdown_pdf(text, buffer):
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import cm
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.colors import HexColor
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+    import re
+
+    p = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+    y = height - 2 * cm
+    left = 2 * cm
+    max_text_width = width - left - 2 * cm
+    code_bg = HexColor("#f5f5f5")
+    code_font = "Courier"
+    normal_font = "Helvetica"
+    bold_font = "Helvetica-Bold"
+
+    lines = text.splitlines()
+    in_code = False
+    code_block = []
+
+    for i, line in enumerate(lines + [""]):
+        # --- CODE BLOCK ---
+        if line.strip().startswith("```"):
+            if in_code:
+                # Draw code block
+                p.setFont(code_font, 11)
+                p.setFillColor(code_bg)
+                block_height = 0.7 * cm * len(code_block)
+                p.rect(left - 0.2*cm, y - block_height + 0.2*cm, width - 4*cm, block_height, fill=1, stroke=0)
+                p.setFillColor(HexColor("#333333"))
+                cy = y - 0.4*cm
+                for code_line in code_block:
+                    p.drawString(left, cy, code_line)
+                    cy -= 0.7*cm
+                y -= 0.7*cm * len(code_block) + 0.5*cm
+                code_block = []
+                in_code = False
+            else:
+                in_code = True
+            continue
+
+        if in_code:
+            code_block.append(line)
+            continue
+
+        # --- HEADINGS ---
+        if line.startswith("###### "):
+            p.setFillColor(HexColor("#4a4a4a"))
+            draw_rich_text_line(p, left, y, line[7:], normal_font, bold_font, 10)
+            y -= 0.7 * cm
+        elif line.startswith("##### "):
+            p.setFillColor(HexColor("#4a4a4a"))
+            draw_rich_text_line(p, left, y, line[6:], normal_font, bold_font, 11)
+            y -= 0.8 * cm
+        elif line.startswith("#### "):
+            p.setFillColor(HexColor("#4a4a4a"))
+            draw_rich_text_line(p, left, y, line[5:], normal_font, bold_font, 12)
+            y -= 0.9 * cm
+        elif line.startswith("### "):
+            p.setFillColor(HexColor("#264653"))
+            draw_rich_text_line(p, left, y, line[4:], normal_font, bold_font, 13)
+            y -= 1 * cm
+        elif line.startswith("## "):
+            p.setFillColor(HexColor("#2a9d8f"))
+            draw_rich_text_line(p, left, y, line[3:], normal_font, bold_font, 16)
+            y -= 1 * cm
+
+        # --- UNORDERED LIST ---
+        elif line.strip().startswith("- ") or line.strip().startswith("* "):
+            p.setFont(normal_font, 12)
+            p.setFillColor(HexColor("#333333"))
+            bullet_text = "• " + line.strip()[2:]
+            for subline in split_text(bullet_text, normal_font, 12, max_text_width - 0.5 * cm):
+                draw_rich_text_line(p, left + 0.5 * cm, y, subline, normal_font, bold_font, 12)
+                y -= 0.65 * cm
+
+        # --- ORDERED LIST ---
+        elif re.match(r"\d+\.", line.strip()):
+            p.setFont(normal_font, 12)
+            p.setFillColor(HexColor("#333333"))
+            for subline in split_text(line.strip(), normal_font, 12, max_text_width - 0.5 * cm):
+                draw_rich_text_line(p, left + 0.5 * cm, y, subline, normal_font, bold_font, 12)
+                y -= 0.65 * cm
+
+        # --- HORIZONTAL RULE ---
+        elif line.strip() == "---":
+            y -= 0.2*cm
+            p.setStrokeColor(HexColor("#a5a5a5"))
+            p.line(left, y, width-left, y)
+            y -= 0.5*cm
+
+        # --- EMPTY LINE ---
+        elif not line.strip():
+            y -= 0.5*cm
+
+        # --- NORMAL PARAGRAPH TEXT ---
+        else:
+            p.setFont(normal_font, 12)
+            p.setFillColor(HexColor("#222222"))
+            for subline in split_text(line, normal_font, 12, max_text_width):
+                draw_rich_text_line(p, left, y, subline, normal_font, bold_font, 12)
+                y -= 0.65 * cm
+
+        # --- PAGE BREAK ---
+        if y < 2 * cm:
+            p.showPage()
+            y = height - 2 * cm
+
+    p.save()
+    buffer.seek(0)
+
+
+class ConspectPDFView(APIView):
+
+    def post(self, request, chat_id):
+        chat = ConspectChat.objects.get(id=chat_id, user=request.user)
+        last_message = chat.messages.filter(role="assistant").order_by('-timestamp').first()
+        if not last_message:
+            return Response({"error": "Нет сообщений от ИИ."}, status=400)
+
+        text = last_message.content
+
+        buffer = BytesIO()
+        render_markdown_pdf(text, buffer)
+
+        filename = f"conspect_{request.user.id}_{uuid.uuid4().hex}.pdf"
+        filepath = f"pdf/conspect/{filename}"
+        default_storage.save(filepath, buffer)
+        file_url = default_storage.url(filepath)
+
+        delete_later(filepath, 300)
+
+        return Response({"url": file_url})
+
+
+import threading
+import time
+
+def delete_later(filepath, seconds=300):
+    def deleter():
+        time.sleep(seconds)
+        if default_storage.exists(filepath):
+            default_storage.delete(filepath)
+    threading.Thread(target=deleter, daemon=True).start()
+
+class ProjectToRPDFView(APIView):
+    def post(self, request, chat_id):
+        chat = ProjectToRChat.objects.filter(id=chat_id, user=request.user).first()
+        if not chat:
+            return Response({"error": "Chat not found"}, status=404)
+
+        last_message = chat.messages.filter(role="assistant").order_by('-timestamp').first()
+        if not last_message:
+            return Response({"error": "No assistant messages found"}, status=400)
+
+        text = last_message.content
+        buffer = BytesIO()
+        render_markdown_pdf(text, buffer)
+
+        filename = f"project_tor_{request.user.id}_{uuid.uuid4().hex}.pdf"
+        filepath = f"pdf/project_tor/{filename}"
+        default_storage.save(filepath, buffer)
+        file_url = default_storage.url(filepath)
+
+        delete_later(filepath, 300)
+
+        return Response({"url": file_url})
