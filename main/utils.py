@@ -2,6 +2,8 @@ import os
 import uuid
 import qrcode
 import hashlib
+import logging
+from django.db.models import Sum
 from io import BytesIO
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -20,33 +22,27 @@ pdfmetrics.registerFont(TTFont("Caladea", os.path.join(FONT_DIR, "Caladea.ttf"))
 
 def update_course_progress(user, course):
     student = Student.objects.get(user=user)
+    lessons = Lesson.objects.filter(module__course=course)
+    total_points = lessons.count() * 2
+    from .views import TriggerCertificateView
 
-    total_lessons = Lesson.objects.filter(module__course=course).count()
+    progress_list = LessonProgress.objects.filter(student=student, lesson__in=lessons)
 
-    total_progress = LessonProgress.objects.filter(
-        student=student,
-        lesson__module__course=course
-    ).aggregate(models.Sum('progress_percent'))['progress_percent__sum'] or 0
+    completed_points = 0
+    for lp in progress_list:
+        if lp.is_viewed:
+            completed_points += 1
+        if lp.is_completed:
+            completed_points += 1
 
-    percent = round(total_progress / total_lessons, 2) if total_lessons else 0.0
+    percent = round((completed_points / total_points) * 100, 2) if total_points else 0.0
 
     CourseProgress.objects.update_or_create(
         student=student,
         course=course,
-        defaults={'progress_percent': percent}
+        defaults={'progress_percent': percent, 'is_completed': percent == 100.0}
     )
 
-    if percent == 100.0 and not Certificate.objects.filter(user=user, course=course).exists():
-        from .views import TriggerCertificateView
-        request_factory = APIRequestFactory()
-        fake_request = request_factory.post(f"/certificates/generate/{course.id}/")
-        fake_request.user = user
-        view = TriggerCertificateView.as_view()
-        response = view(fake_request, course_id=course.id)
-        if hasattr(response, "status_code") and response.status_code >= 400:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Certificate generation failed: {response.data}")
 
 
 

@@ -3,7 +3,9 @@ from django.db.models.signals import post_save, post_delete
 from django.contrib.auth.models import User
 from django.dispatch import receiver
 from allauth.account.signals import user_logged_in, user_signed_up
-from .models import Course, Review, Student, MostPopularCourse, BestCourse, Author
+from .models import Course, Review, Student, MostPopularCourse, BestCourse, Author, CourseProgress, LessonProgress, Lesson
+from exercises.models import Exercise
+from .utils import update_course_progress
 
 logger = logging.getLogger(__name__)
 
@@ -59,3 +61,15 @@ def sync_author_flags(sender, instance, **kwargs):
         post_save.disconnect(sync_author_flags, sender=Author)
         instance.save()
         post_save.connect(sync_author_flags, sender=Author)
+
+@receiver([post_save, post_delete], sender=Lesson)
+def recalculate_progress_on_lesson_change(sender, instance, **kwargs):
+    course = instance.module.course
+    for student in Student.objects.filter(enrolled_courses=course):
+        update_course_progress(student.user, course)
+
+@receiver([post_save, post_delete], sender=Exercise)
+def recalculate_progress_on_exercise_change(sender, instance, **kwargs):
+    course = instance.lesson.module.course
+    for student in Student.objects.filter(enrolled_courses=course):
+        update_course_progress(student.user, course)
