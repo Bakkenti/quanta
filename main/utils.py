@@ -13,37 +13,12 @@ from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from .models import Certificate, CourseProgress, LessonProgress, Lesson, Student
+from .models import Certificate, Lesson, Student
 from rest_framework.test import APIRequestFactory
 
 FONT_DIR = os.path.join(settings.BASE_DIR, "static", "fonts")
 pdfmetrics.registerFont(TTFont("LibreBaskerville", os.path.join(FONT_DIR, "LibreBaskerville.ttf")))
 pdfmetrics.registerFont(TTFont("Caladea", os.path.join(FONT_DIR, "Caladea.ttf")))
-
-def update_course_progress(user, course):
-    student = Student.objects.get(user=user)
-    lessons = Lesson.objects.filter(module__course=course)
-    total_points = lessons.count() * 2
-    from .views import TriggerCertificateView
-
-    progress_list = LessonProgress.objects.filter(student=student, lesson__in=lessons)
-
-    completed_points = 0
-    for lp in progress_list:
-        if lp.is_viewed:
-            completed_points += 1
-        if lp.is_completed:
-            completed_points += 1
-
-    percent = round((completed_points / total_points) * 100, 2) if total_points else 0.0
-
-    CourseProgress.objects.update_or_create(
-        student=student,
-        course=course,
-        defaults={'progress_percent': percent, 'is_completed': percent == 100.0}
-    )
-
-
 
 
 def generate_certificate(user, course):

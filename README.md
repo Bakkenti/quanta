@@ -823,11 +823,12 @@ Access it at `http://localhost:8000/`
   ]
 }
 ```
-#### **DELETE /author/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/exercises/**
+#### **DELETE /author/courses/<course_id>/modules/<module_id>/lessons/<lesson_id>/exercises/delete/**
 ```json
 {
-  "exercise_ids": [33, 34, 35]
+  "ids": [12, 13, 14]
 }
+
 
 ```
 
@@ -1738,11 +1739,6 @@ DELETE /advertisements/{id}/
 ```
 DELETE /blog/comments/{id}/moderator-delete/
 ```
-
-**Answer:**
-
-* 204 No Content
-
 ---
 
 ### Delete the comment by the owner (student)
@@ -1750,16 +1746,211 @@ DELETE /blog/comments/{id}/moderator-delete/
 ```
 DELETE /blog/comments/{id}/delete/
 ```
+---
 
-**Answer:**
+###1. Get the details of the final exam
 
-* 204 No Content
-* 403 Forbidden if someone else's comment
+**GET /courses/{course\_id}/final-exam/**
+
+**Response**
+
+```json
+{
+  "id": 4,
+  "course": 9,
+"title": "Python Final",
+"description": "Final Python Exam",
+  "duration_minutes": 60,
+  "max_attempts": 3,
+  "questions": [
+{
+"id": 1,
+"text": "What is Python?",
+"options": [
+{"id": 10, "text": "Programming language", "is_correct": true},
+        {"id": 11, "text": "Snake type", "is_correct": false}
+      ]
+    }
+  ]
+}
+```
 
 ---
 
-**If you haven't described something, please specify it.**
+### 2. Create a final exam (course author only)
 
+**POST /courses/{course\_id}/final-exam/**
+
+**Request**
+
+``json
+{
+"title": "Python Final",
+"description": "Final Python Exam",
+  "duration_minutes": 60,
+  "max_attempts": 3,
+  "questions": [
+{
+"text": "What is Python?",
+"options": [
+{"text": "Programming language", "is_correct": true},
+        {"text": "Snake type", "is_correct": false}
+      ]
+    }
+  ]
+}
+```
+
+**Response**
+
+```json
+{
+  "id": 4,
+  "detail": "Exam created"
+}
+```
+
+If the exam already exists:
+
+```json
+{
+  "error": "Final exam for this course already exists."
+}
+```
+
+---
+
+###3. Start the exam attempt
+
+**POST /courses/{course\_id}/final-exam/start/**
+
+**Response**
+
+```json
+{
+  "id": 5,
+  "student": 3,
+  "exam": 4,
+  "started_at": "2025-06-11T09:50:42.100Z",
+  "finished_at": null,
+  "score": null,
+  "passed": false,
+  "answers": {},
+  "is_completed": false,
+  "attempt_number": 1
+}
+```
+
+If there is an incomplete attempt:
+
+```json
+{
+  "error": "You already have an unfinished attempt."
+}
+```
+
+If the attempts have ended:
+
+```json
+{
+  "error": "No more attempts available"
+}
+```
+
+---
+
+###4. Send the exam answers (complete the attempt)
+
+**POST /courses/{course\_id}/final-exam/submit-answer/**
+
+**Request**
+
+``json
+{
+"answers": {
+"1": [10], // Question 1: Have the options with the id been selected=10
+"2": [15, 16] // Question 2: options selected
+}
+}
+``
+
+**Response**
+
+```json
+{
+  "score": 90.0,
+  "details": [
+    {"question_id": "1", "correct": true},
+    {"question_id": "2", "correct": false}
+  ],
+  "max_score": 100,
+  "attempt_number": 1,
+  "can_retry": true
+}
+```
+
+If there is no active attempt:
+
+``json
+{
+"error": "No active exam attempt."
+}
+``
+
+---
+
+###5. Get a list of your exam attempts
+
+**GET /courses/{course\_id}/final-exam/attempts/**
+
+**Response**
+
+```json
+[
+  {
+    "id": 5,
+    "student": 3,
+    "exam": 4,
+    "started_at": "2025-06-11T09:50:42.100Z",
+    "finished_at": "2025-06-11T10:30:00.000Z",
+    "score": 90.0,
+    "passed": true,
+    "answers": {
+      "1": [10],
+      "2": [15, 16]
+    },
+    "is_completed": true,
+    "attempt_number": 1
+  },
+  {
+    "id": 6,
+    "student": 3,
+    "exam": 4,
+    "started_at": "2025-06-11T11:00:42.100Z",
+    "finished_at": "2025-06-11T11:40:00.000Z",
+    "score": 80.0,
+    "passed": true,
+    "answers": {
+      "1": [10],
+      "2": [15]
+    },
+    "is_completed": true,
+    "attempt_number": 2
+  }
+]
+```
+
+---
+
+## Briefly:
+
+* **GET** `/courses/{course_id}/final-exam/` — get exam
+* **POST** `/courses/{course_id}/final-exam/` — create exam
+* **POST** `/courses/{course_id}/final-exam/start/` — start an attempt
+* **POST** `/courses/{course_id}/final-exam/submit-answer/` — send answers and end the attempt
+* **GET** `/courses/{course_id}/final-exam/attempts/` — a list of your attempts
+
+This is enough to work with the final exam and the attempts.
 
 ---
 ## 🚀 Deployment

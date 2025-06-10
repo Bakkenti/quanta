@@ -19,11 +19,14 @@ from dj_rest_auth.views import LoginView
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from .models import (Course, Lesson, Student, Author, Review, Module, MostPopularCourse, BestCourse, Advertisement, Category, SiteReview,
                      KeepInTouch, ProgrammingLanguage, ConspectChat, ConspectMessage, Certificate, CourseProgress, LessonProgress,
-                     ProjectToRChat, ProjectToRMessage, ChatMessage, Chat)
+                     ProjectToRChat, ProjectToRMessage, ChatMessage, Chat, FinalExam, FinalExamAttempt, FinalExamQuestion, FinalExamOption)
 from .serializers import (RegistrationSerializer, CategorySerializer, CourseSerializer, LessonSerializer, ModuleSerializer, ReviewSerializer,
                           ProfileSerializer, AdvertisementSerializer, UserSerializer, SiteReviewSerializer, KeepInTouchSerializer,
-                          ConspectMessageSerializer, SendMessageSerializer, ConspectChatSerializer, ProjectToRMessageSerializer, ProjectToRChatSerializer)
+                          ConspectMessageSerializer, SendMessageSerializer, ConspectChatSerializer, ProjectToRMessageSerializer, ProjectToRChatSerializer,
+                          FinalExamSerializer, FinalExamAttemptSerializer)
 from blog.models import BlogPost
+import datetime
+from .signals import recalc_lesson_progress
 from exercises.models import Exercise, LessonAttempt
 from rest_framework.decorators import action
 from django.utils import timezone
@@ -38,7 +41,7 @@ from allauth.socialaccount.providers.github.views import GitHubOAuth2Adapter
 from allauth.account.models import EmailAddress, EmailConfirmation, EmailConfirmationHMAC
 from exercises.ai_helper import forward_answers_to_ai, generate_conspect_response, execute_code, ask_ai, compiler_feature
 from quanta import settings
-from .utils import generate_certificate, update_course_progress
+from .utils import generate_certificate
 import urllib.parse
 import json
 import requests
@@ -361,15 +364,12 @@ class LessonDetail(APIView):
         module = get_object_or_404(Module, course__id=course_id, module_id=module_id)
         lesson = get_object_or_404(Lesson, module=module, lesson_id=lesson_id)
 
-        LessonProgress.objects.update_or_create(
-            student=request.user.student,
-            lesson=lesson,
-            defaults={
-                'is_viewed': True,
-                'progress_percent': 50.0
-            }
-        )
-        update_course_progress(request.user, lesson.module.course)
+        student = request.user.student
+        lp, _ = LessonProgress.objects.get_or_create(student=student, lesson=lesson)
+        if not lp.is_viewed:
+            lp.is_viewed = True
+            lp.save()
+        recalc_lesson_progress(student, lesson)
 
         lesson_data = {
             "id": lesson.lesson_id,
@@ -1568,3 +1568,128 @@ class AdvertisementListCreateView(ListCreateAPIView):
 class AdvertisementEditView(RetrieveUpdateDestroyAPIView):
     queryset = Advertisement.objects.all()
     serializer_class = AdvertisementSerializer
+
+class FinalExamCreateView(APIView):
+    def post(self, request, course_id):
+        course = Course.objects.get(id=course_id)
+        # Проверка: если экзамен уже есть, верни ошибку
+        if hasattr(course, "final_exam"):
+            return Response({"error": "Final exam for this course already exists."}, status=400)
+        data = request.data
+        exam = FinalExam.objects.create(
+            course=course,
+            title=data.get("title", ""),
+            duration_minutes=data.get("duration_minutes", 30),
+            max_attempts=data.get("max_attempts", 3)
+        )
+        for q in data.get("questions", []):
+            question = FinalExamQuestion.objects.create(
+                exam=exam,
+                text=q["text"]
+            )
+            for opt in q.get("options", []):
+                FinalExamOption.objects.create(
+                    question=question,
+                    text=opt["text"],
+                    is_correct=opt["is_correct"]
+                )
+        return Response({"id": exam.id, "detail": "Exam created"}, status=201)
+
+class FinalExamDetailView(RetrieveAPIView):
+    queryset = FinalExam.objects.all()
+    serializer_class = FinalExamSerializer
+
+    def get_object(self):
+        course_id = self.kwargs["course_id"]
+        return FinalExam.objects.get(course_id=course_id)
+
+class FinalExamStartView(APIView):
+    def post(self, request, course_id):
+        student = request.user.student
+        course = Course.objects.get(id=course_id)
+        exam = course.final_exam
+
+        attempts_count = FinalExamAttempt.objects.filter(student=student, exam=exam).count()
+        max_attempts = exam.max_attempts
+
+        last_attempt = FinalExamAttempt.objects.filter(student=student, exam=exam).order_by('-attempt_number').first()
+        max_attempts = exam.max_attempts
+        if last_attempt and not last_attempt.is_completed:
+            return Response({"error": "You already have an unfinished attempt."}, status=400)
+
+        attempt_number = (last_attempt.attempt_number if last_attempt else 0) + 1
+
+        if attempt_number > max_attempts:
+            return Response({"error": "No more attempts available"}, status=403)
+
+        attempt = FinalExamAttempt.objects.create(
+            student=student,
+            exam=exam,
+            attempt_number=attempt_number
+        )
+        serializer = FinalExamAttemptSerializer(attempt)
+        return Response(serializer.data, status=201)
+
+class FinalExamSubmitView(APIView):
+    def post(self, request, course_id):
+        student = request.user.student
+        exam = FinalExam.objects.get(course_id=course_id)
+        # ищем текущий незавершённый attempt
+        attempt = FinalExamAttempt.objects.filter(student=student, exam=exam, is_completed=False).order_by('-started_at').first()
+        if not attempt:
+            return Response({"error": "Нет активной попытки экзамена."}, status=400)
+
+        data = request.data.get("answers", {})
+        if not data:
+            return Response({"error": "No answers."}, status=400)
+
+        total = exam.questions.count()
+        correct = 0
+        detailed = []
+
+        for question in exam.questions.all():
+            q_id = str(question.id)
+            selected_options = data.get(q_id, [])
+            real_options = set([str(opt.id) for opt in question.options.filter(is_correct=True)])
+            if set(selected_options) == real_options and real_options:
+                correct += 1
+                detailed.append({"question_id": q_id, "correct": True})
+            else:
+                detailed.append({"question_id": q_id, "correct": False})
+
+        score = round((correct / total) * 100, 2) if total > 0 else 0
+        attempt.answers = data
+        attempt.score = score
+        attempt.passed = True
+        attempt.is_completed = True
+        attempt.finished_at = timezone.now()
+        attempt.save()
+
+        num_attempts = FinalExamAttempt.objects.filter(student=student, exam=exam).count()
+        can_retry = num_attempts < exam.max_attempts
+
+        return Response({
+            "score": score,
+            "details": detailed,
+            "max_score": 100,
+            "attempt_number": attempt.attempt_number,
+            "can_retry": can_retry,
+        }, status=200)
+
+
+
+
+class FinalExamAttemptsListView(ListAPIView):
+    serializer_class = FinalExamAttemptSerializer
+
+    def get(self, request, course_id):
+        student = request.user.student
+        exam = FinalExam.objects.get(course_id=course_id)
+        attempts = FinalExamAttempt.objects.filter(student=student, exam=exam)
+        serializer = FinalExamAttemptSerializer(attempts, many=True)
+        return Response(serializer.data)
+
+    def get_queryset(self):
+        student = self.request.user.student
+        exam_id = self.kwargs['exam_id']
+        return FinalExamAttempt.objects.filter(student=student, exam_id=exam_id).order_by('-started_at')

@@ -14,7 +14,10 @@ from .views import (
     CodeExecutionView, CompilerFeaturesView, MyCertificatesView, CertificateVerifyView, TriggerCertificateView,
     ProjectToRSendMessageView, ProjectToRChatListView, ProjectToRHistoryView, ConspectPDFView, ProjectToRPDFView, ProgrammingLanguagesListView,
     ChatWithAIView, ChatHistoryView, AllAppliesView, ApproveApplyView, RejectApplyView, ChangeRoleView, DeactivateUserView, RestoreUserView, AdvertisementListCreateView,
-    AdvertisementEditView, UsersListView
+    AdvertisementEditView, UsersListView, FinalExamDetailView,
+    FinalExamStartView,
+    FinalExamSubmitView,
+    FinalExamAttemptsListView, FinalExamCreateView
 )
 
 urlpatterns = [
@@ -82,5 +85,16 @@ urlpatterns = [
     path('advertisements/', AdvertisementListCreateView.as_view(), name='advertisement_list_create'),
     path('advertisements/<int:pk>/', AdvertisementEditView.as_view(), name='advertisement_edit'),
     path('users-list/', UsersListView.as_view(), name='users_list'),
+    path('courses/<int:course_id>/final-exam/', FinalExamDetailView.as_view(), name='final_exam_detail'),  # GET
+    path('courses/<int:course_id>/final-exam/', FinalExamCreateView.as_view(), name='final_exam_create'),  # POST
+
+    # Начать попытку
+    path('courses/<int:course_id>/final-exam/start/', FinalExamStartView.as_view(), name='final_exam_start'),  # POST
+
+    # Получить попытки студента
+    path('courses/<int:course_id>/final-exam/attempts/', FinalExamAttemptsListView.as_view(),
+         name='final_exam_attempts'),  # GET
+
+    path('courses/<int:course_id>/final-exam/submit-answer/', FinalExamSubmitView.as_view(), name='final_exam_submit')
 
 ]

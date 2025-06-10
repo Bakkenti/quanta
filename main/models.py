@@ -8,6 +8,8 @@ from .custom_storage import video_storage
 import re
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Avg, Max
+from django.utils import timezone
+from decimal import Decimal
 
 def validate_course_duration(value):
     pattern = r'^(?P<value>[1-9]|[1-2][0-9]|30) (?P<unit>(day|week|days|weeks))$'
@@ -326,8 +328,8 @@ class Certificate(models.Model):
 
 
 class LessonProgress(models.Model):
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='lesson_progress')
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
+    student = models.ForeignKey("Student", on_delete=models.CASCADE, related_name='lesson_progress')
+    lesson = models.ForeignKey("Lesson", on_delete=models.CASCADE)
     is_viewed = models.BooleanField(default=False)
     is_completed = models.BooleanField(default=False)
     progress_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.0)
@@ -337,8 +339,8 @@ class LessonProgress(models.Model):
         unique_together = ('student', 'lesson')
 
 class CourseProgress(models.Model):
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='course_progress')
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    student = models.ForeignKey("Student", on_delete=models.CASCADE, related_name='course_progress')
+    course = models.ForeignKey("Course", on_delete=models.CASCADE)
     progress_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.0)
     is_completed = models.BooleanField(default=False)
     completed_at = models.DateTimeField(null=True, blank=True)
@@ -375,3 +377,44 @@ class Moderator(models.Model):
 
     def __str__(self):
             return f"Moderator: {self.student.user.username}"
+
+class FinalExam(models.Model):
+    course = models.OneToOneField(Course, on_delete=models.CASCADE, related_name='final_exam')
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    duration_minutes = models.PositiveIntegerField(default=60)
+    max_attempts = models.PositiveIntegerField(default=3)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Final exam for {self.course.title}"
+
+class FinalExamQuestion(models.Model):
+    exam = models.ForeignKey(FinalExam, on_delete=models.CASCADE, related_name='questions')
+    text = models.TextField()
+
+    def __str__(self):
+        return self.text
+
+class FinalExamOption(models.Model):
+    question = models.ForeignKey(FinalExamQuestion, on_delete=models.CASCADE, related_name='options')
+    text = models.CharField(max_length=512)
+    is_correct = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.text
+
+class FinalExamAttempt(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='final_exam_attempts')
+    exam = models.ForeignKey(FinalExam, on_delete=models.CASCADE, related_name='attempts')
+    started_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    score = models.FloatField(null=True, blank=True)
+    passed = models.BooleanField(default=False)
+    answers = models.JSONField(default=dict, blank=True)
+    is_completed = models.BooleanField(default=False)
+    attempt_number = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        unique_together = ('student', 'exam', 'attempt_number')
+        ordering = ['-started_at']

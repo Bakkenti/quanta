@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import (Author, Student, Course, Module, Lesson, Review, Advertisement, Category, SiteReview, KeepInTouch,
-                     ConspectChat, ConspectMessage, ProjectToRMessage, ProjectToRChat, Moderator)
+                     ConspectChat, ConspectMessage, ProjectToRMessage, ProjectToRChat, Moderator,
+                     FinalExam, FinalExamQuestion, FinalExamOption, FinalExamAttempt)
 from dj_rest_auth.serializers import LoginSerializer
 from django.contrib.auth.models import User
 from django_ckeditor_5.fields import CKEditor5Field
@@ -257,3 +258,28 @@ class ModeratorSerializer(serializers.ModelSerializer):
 
     def get_role(self, obj):
         return "Moderator"
+
+class FinalExamOptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FinalExamOption
+        fields = ['id', 'text', 'is_correct']
+
+class FinalExamQuestionSerializer(serializers.ModelSerializer):
+    options = FinalExamOptionSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = FinalExamQuestion
+        fields = ['id', 'text', 'options']
+
+class FinalExamSerializer(serializers.ModelSerializer):
+    questions = FinalExamQuestionSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = FinalExam
+        fields = ['id', 'course', 'title', 'description', 'duration_minutes', 'max_attempts', 'questions']
+
+class FinalExamAttemptSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FinalExamAttempt
+        fields = ['id', 'student', 'exam', 'started_at', 'finished_at', 'score', 'passed', 'answers', 'is_completed', 'attempt_number']
+        read_only_fields = ['started_at', 'finished_at', 'score', 'passed', 'is_completed', 'attempt_number']

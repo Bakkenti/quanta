@@ -7,8 +7,7 @@ from .ai_helper import execute_code, get_code_hint
 from django.utils.timezone import now, timedelta
 from django.utils import timezone
 from main.models import LessonProgress
-from main.utils import update_course_progress
-from main.views import all_exercises_completed
+from main.signals import recalc_lesson_progress
 
 
 class AuthorExerciseListCreate(generics.ListCreateAPIView):
@@ -98,6 +97,9 @@ class LessonBulkSubmit(APIView):
             module__module_id=module_id,
             module__course__id=course_id
         )
+        if not student.is_enrolled(lesson.module.course):
+            return Response({'error': 'You are not enrolled to this course.'}, status=403)
+
         answers = request.data.get('answers', [])
         exercises = {e.id: e for e in Exercise.objects.filter(lesson=lesson)}
         correct_count = 0
@@ -143,17 +145,7 @@ class LessonBulkSubmit(APIView):
             score=correct_count
         )
 
-        LessonProgress.objects.update_or_create(
-            student=student,
-            lesson=lesson,
-            defaults={
-                'is_viewed': True,
-                'is_completed': all_exercises_completed(student, lesson),
-                'progress_percent': 100.0
-            }
-        )
-        update_course_progress(student.user, lesson.module.course)
-
+        recalc_lesson_progress(student, lesson)
         return Response({
             'attempt_id': lesson_attempt.id,
             'score': correct_count,
