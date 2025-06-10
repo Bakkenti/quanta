@@ -1790,16 +1790,6 @@ DELETE /blog/comments/{id}/delete/
 }
 ```
 
-**Fields in the response**:
-
-* `course_id': The course ID.
-* `student_id': The student's ID.
-* `progress_percent': The percentage of course completion by the student (from 0 to 100%).
-* `is_completed': The status of whether the student has completed the course.
-* `completed_at': Course completion time (if completed).
-
-These two endpoints will allow you to track the progress of both individual lessons and the entire course.
-
 ---
 
 ###1. Get the details of the final exam
@@ -1833,7 +1823,7 @@ These two endpoints will allow you to track the progress of both individual less
 
 ### 2. Create a final exam (course author only)
 
-**POST /courses/{course\_id}/final-exam/**
+**POST /courses/{course\_id}/final-exam/create/**
 
 **Request**
 

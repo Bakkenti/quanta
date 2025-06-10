@@ -17,7 +17,7 @@ from .views import (
     AdvertisementEditView, UsersListView, FinalExamDetailView,
     FinalExamStartView,
     FinalExamSubmitView,
-    FinalExamAttemptsListView, FinalExamCreateView, LessonProgressView, CourseProgressView
+    FinalExamAttemptsListView, FinalExamCreateView, LessonProgressView, CourseProgressView, FinalExamDeleteView
 )
 
 urlpatterns = [
@@ -86,7 +86,7 @@ urlpatterns = [
     path('advertisements/<int:pk>/', AdvertisementEditView.as_view(), name='advertisement_edit'),
     path('users-list/', UsersListView.as_view(), name='users_list'),
     path('courses/<int:course_id>/final-exam/', FinalExamDetailView.as_view(), name='final_exam_detail'),  # GET
-    path('courses/<int:course_id>/final-exam/', FinalExamCreateView.as_view(), name='final_exam_create'),  # POST
+    path('courses/<int:course_id>/final-exam/create/', FinalExamCreateView.as_view(), name='final_exam_create'),  # POST
 
     # Начать попытку
     path('courses/<int:course_id>/final-exam/start/', FinalExamStartView.as_view(), name='final_exam_start'),  # POST
@@ -98,6 +98,8 @@ urlpatterns = [
     path('courses/<int:course_id>/final-exam/submit-answer/', FinalExamSubmitView.as_view(), name='final_exam_submit'),
     path('courses/<int:course_id>/modules/<int:module_id>/lessons/<int:lesson_id>/progress/',
          LessonProgressView.as_view(), name='lesson_progress'),
+    path('courses/<int:course_id>/final-exam/delete/', FinalExamDeleteView.as_view(), name='final_exam_delete'),
+    # DELETE
 
     # Прогресс курса
     path('courses/<int:course_id>/progress/', CourseProgressView.as_view(), name='course_progress'),

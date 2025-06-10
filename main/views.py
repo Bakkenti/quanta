@@ -12,6 +12,7 @@ from rest_framework.permissions import AllowAny, BasePermission
 from django.core.mail import send_mail
 from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
 from rest_framework.parsers import MultiPartParser, FormParser
+from django.http import Http404
 from rest_framework.test import APIRequestFactory
 from rest_framework.generics import RetrieveAPIView, ListAPIView, ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from django.contrib.sessions.middleware import SessionMiddleware
@@ -999,36 +1000,41 @@ class CertificateVerifyView(APIView):
             "pdf_url": request.build_absolute_uri(cert.pdf_file.url),
         })
 
+
 class TriggerCertificateView(APIView):
     def post(self, request, course_id):
         course = get_object_or_404(Course, id=course_id)
 
-        existing = Certificate.objects.filter(user=request.user, course=course).first()
-        if existing:
-            return Response({
-                "error": "You already have a certificate for this course.",
-                "pdf_url": request.build_absolute_uri(existing.pdf_file.url)
-            }, status=400)
+        # Получаем прогресс студента по курсу
+        course_progress = CourseProgress.objects.get(student=request.user.student, course=course)
 
-        try:
-            cert = generate_certificate(request.user, course)
-        except IntegrityError as e:
-            logger.error(f"IntegrityError: {str(e)}")
-            return Response({
-                "error": "An error occurred while generating the certificate. Possibly a duplicate.",
-                "details": str(e)
-            }, status=400)
-        except Exception as e:
-            logger.error(f"Error during certificate generation: {str(e)}")
-            return Response({
-                "error": "An error occurred while generating the certificate.",
-                "details": str(e)
-            }, status=500)
+        # Проверяем, завершил ли студент курс
+        if not course_progress.is_completed:
+            return Response({"error": "You need to complete the course first."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Проверяем, что студент прошел все попытки экзамена
+        final_exam_attempts = FinalExamAttempt.objects.filter(student=request.user.student, exam__course=course)
+
+        if final_exam_attempts.count() == 0:
+            return Response({"error": "No exam attempts found for this course."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Получаем максимальную оценку среди всех попыток
+        highest_score = max([attempt.score for attempt in final_exam_attempts])
+
+        # Создание сертификата
+        certificate = Certificate.objects.create(
+            student=request.user.student,
+            course=course,
+            score=highest_score  # Добавляем максимальную оценку
+        )
+
+        # Возвращаем ответ с URL для скачивания сертификата
         return Response({
             "message": "Certificate generated successfully.",
-            "pdf_url": request.build_absolute_uri(cert.pdf_file.url)
-        })
+            "pdf_url": request.build_absolute_uri(certificate.pdf_file.url),
+            "highest_score": highest_score  # Возвращаем максимальный балл
+        }, status=status.HTTP_201_CREATED)
+
 
 def all_exercises_completed(student, lesson):
     exercises = Exercise.objects.filter(lesson=lesson)
@@ -1569,12 +1575,16 @@ class AdvertisementEditView(RetrieveUpdateDestroyAPIView):
     queryset = Advertisement.objects.all()
     serializer_class = AdvertisementSerializer
 
+
 class FinalExamCreateView(APIView):
     def post(self, request, course_id):
-        course = Course.objects.get(id=course_id)
-        # Проверка: если экзамен уже есть, верни ошибку
+        course = get_object_or_404(Course, id=course_id)
+
+        # Проверка, если экзамен уже существует для курса
         if hasattr(course, "final_exam"):
             return Response({"error": "Final exam for this course already exists."}, status=400)
+
+        # Извлекаем данные из запроса
         data = request.data
         exam = FinalExam.objects.create(
             course=course,
@@ -1582,6 +1592,8 @@ class FinalExamCreateView(APIView):
             duration_minutes=data.get("duration_minutes", 30),
             max_attempts=data.get("max_attempts", 3)
         )
+
+        # Создаем вопросы и варианты ответов
         for q in data.get("questions", []):
             question = FinalExamQuestion.objects.create(
                 exam=exam,
@@ -1593,7 +1605,9 @@ class FinalExamCreateView(APIView):
                     text=opt["text"],
                     is_correct=opt["is_correct"]
                 )
-        return Response({"id": exam.id, "detail": "Exam created"}, status=201)
+
+        return Response({"id": exam.id, "detail": "Exam created successfully"}, status=201)
+
 
 class FinalExamDetailView(RetrieveAPIView):
     queryset = FinalExam.objects.all()
@@ -1601,7 +1615,20 @@ class FinalExamDetailView(RetrieveAPIView):
 
     def get_object(self):
         course_id = self.kwargs["course_id"]
-        return FinalExam.objects.get(course_id=course_id)
+        try:
+            return FinalExam.objects.get(course_id=course_id)
+        except FinalExam.DoesNotExist:
+            raise Http404("Final exam not found for this course")
+
+class FinalExamDeleteView(APIView):
+    def delete(self, request, course_id):
+        # Получаем экзамен, привязанный к курсу
+        exam = get_object_or_404(FinalExam, course_id=course_id)
+
+        # Удаляем экзамен
+        exam.delete()
+
+        return Response({"detail": "Final exam deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
 
 class FinalExamStartView(APIView):
     def post(self, request, course_id):
