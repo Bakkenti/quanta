@@ -4,7 +4,7 @@ from dj_rest_auth.views import LoginView, LogoutView
 
 from .views import (
     Registration, Login, GoogleLogin, GoogleCodeExchangeView, GithubLogin, GithubCodeExchangeView, Profile,
-    CourseList, CourseDetail, LessonDetail, MostPopularCourseView, BestCourseView, Advertisement,
+    CourseList, CourseDetail, LessonDetail, MostPopularCourseView, BestCourseView, AdvertisementView,
     AuthorCourseListCreate, AuthorCourseEdit, AuthorModuleListCreate, AuthorModuleEdit, AuthorLessonListCreate, AuthorLessonEdit,
     AuthorBlogListCreate, AuthorBlogEdit,
     MyCourses, EnrollCourse, UnenrollCourse, ProfileEdit, LessonImageUploadView,
@@ -13,7 +13,7 @@ from .views import (
     ConspectChatListView, ConspectHistoryView, ConspectSendMessageView, ConspectStartChatView,
     CodeExecutionView, CompilerFeaturesView, MyCertificatesView, CertificateVerifyView, TriggerCertificateView,
     ProjectToRSendMessageView, ProjectToRChatListView, ProjectToRHistoryView, ConspectPDFView, ProjectToRPDFView, ProgrammingLanguagesListView,
-    ChatWithAIView, ChatHistoryView
+    ChatWithAIView, ChatHistoryView, AllAppliesView, ApproveApplyView, RejectApplyView, ChangeRoleView, DeactivateUserView, RestoreUserView, AdvertisementListCreateView, AdvertisementEditView
 )
 
 urlpatterns = [
@@ -37,7 +37,7 @@ urlpatterns = [
     path('author/courses/<int:course_id>/modules/<int:module_id>/lessons/<int:lesson_id>/', AuthorLessonEdit.as_view(), name='author_lesson_edit'),
     path('mostpopularcourse/', MostPopularCourseView.as_view(), name='most_popular_course'),
     path('bestcourse/', BestCourseView.as_view(), name='best_course'),
-    path('advertisement/', Advertisement.as_view(), name='advertisement'),
+    path('advertisement/', AdvertisementView.as_view(), name='advertisement'),
     path('categories/', CategoryList.as_view(), name='category-list'),
     path('site-stats/', SiteStats.as_view(), name='site-stats'),
     path('image_upload/', LessonImageUploadView.as_view(), name='ckeditor5_image_upload'),
@@ -72,4 +72,12 @@ urlpatterns = [
     path('languages/', ProgrammingLanguagesListView.as_view()),
     path('ai-dialog/', ChatWithAIView.as_view()),
     path('ai-history/', ChatHistoryView.as_view()),
+    path('applies/', AllAppliesView.as_view(), name='all_applies'),
+    path('applies/<int:user_id>/<str:role>/approve/', ApproveApplyView.as_view(), name='approve_apply'),
+    path('applies/<int:user_id>/<str:role>/reject/', RejectApplyView.as_view(), name='reject_apply'),
+    path('applies/<int:user_id>/change-role/', ChangeRoleView.as_view(), name='change_role'),
+    path('users/<int:user_id>/deactivate/', DeactivateUserView.as_view(), name='deactivate_user'),
+    path('users/<int:user_id>/restore/', RestoreUserView.as_view(), name='restore_user'),
+    path('advertisements/', AdvertisementListCreateView.as_view(), name='advertisement_list_create'),  # GET/POST
+    path('advertisements/<int:pk>/', AdvertisementEditView.as_view(), name='advertisement_edit'),  # GET/PATCH/DELETE
 ]

@@ -81,3 +81,20 @@ class CommentDetail(generics.RetrieveAPIView):
     queryset = BlogComment.objects.all()
     serializer_class = BlogCommentSerializer
     permission_classes = [AllowAny]
+
+class CommentDeleteByModerator(generics.DestroyAPIView):
+    queryset = BlogComment.objects.all()
+    serializer_class = BlogCommentSerializer
+
+    def delete(self, request, *args, **kwargs):
+        return super().delete(request, *args, **kwargs)
+
+class CommentDeleteByOwner(generics.DestroyAPIView):
+    queryset = BlogComment.objects.all()
+    serializer_class = BlogCommentSerializer
+
+    def delete(self, request, *args, **kwargs):
+        comment = self.get_object()
+        if comment.user != request.user:
+            return Response({"error": "You can delete only your own comments."}, status=403)
+        return super().delete(request, *args, **kwargs)

@@ -26,9 +26,11 @@ def validate_phone_number(value):
         raise ValidationError("Enter a valid phone number (e.g., +1234567890).")
 
 
+
 class Student(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="student", null=True, blank=True)
-
+    deletion_requested_at = models.DateTimeField(null=True, blank=True)
+    is_scheduled_for_deletion = models.BooleanField(default=False)
     ROLE_CHOICES = [
         ("student", "Student"),
         ("author", "Author"),
@@ -363,3 +365,12 @@ class ChatMessage(models.Model):
     role = models.CharField(max_length=10)
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
+
+class Moderator(models.Model):
+    student = models.OneToOneField(Student, on_delete=models.CASCADE, related_name='moderator_profile', null=True,
+                                   blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+            return f"Moderator: {self.student.user.username}"

@@ -33,10 +33,7 @@ class BlogComment(models.Model):
         on_delete=models.CASCADE,
         related_name='replies'
     )
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE
-    )
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     content = models.TextField()
     created_at = models.DateTimeField(
         auto_now_add=True
@@ -58,3 +55,4 @@ class BlogComment(models.Model):
         if self.parent:
             return f"Reply from {self.user.username} to {self.parent.id}'s comment on post '{self.post.title}'"
         return f"Comment from {self.user.username} on post '{self.post.title}'"
+

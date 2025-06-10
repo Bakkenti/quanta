@@ -1493,7 +1493,272 @@ Access it at `http://localhost:8000/`
 ```
 
 ---
+## Moderation of applications for roles
 
+### Get all applications for authorship/journalism
+
+```
+GET /applies/
+```
+
+**Answer:**
+
+```json
+[
+  {
+    "author_id": 1,
+    "author_username": "Bakkenti",
+    "author_status": "approved",
+    "author_reject_reason": "",
+    "journalist_status": "rejected",
+    "journalist_reject_reason": ""
+  },
+  ...
+]
+```
+
+---
+
+### Approve the application
+
+```
+POST /applies/{user_id}/{role}/approve/
+```
+
+**role:** `"author"` or `"journalist"`
+**Request body:** empty
+**Response:**
+
+```json
+{"message": "Author application approved."}
+```
+
+or
+
+```json
+{"message": "Journalist application approved."}
+```
+
+---
+
+### Reject the application
+
+```
+POST /applies/{user_id}/{role}/reject/
+```
+
+**role:** `"author"` or `"journalist"`
+**Request body:**
+
+```json
+{"reason": "Not enough publications"}
+``
+
+**Answer:**
+
+```json
+{"message": "Author application rejected."}
+```
+
+or
+
+```json
+{"message": "Journalist application rejected."}
+```
+
+---
+
+### Change the user role
+
+```
+POST /applies/{user_id}/change-role/
+```
+
+**Request body:**
+
+```json
+{"role": "student"}             // or "author", "journalist", "author_journalist"
+``
+
+**Answer:**
+
+```json
+{"message": "Role changed to student."}
+```
+
+---
+
+## User Management
+
+### Deactivate the user (delete after 7 days)
+
+```
+POST /users/{user_id}/deactivate/
+```
+
+**Request body:** empty
+**Response:**
+
+```json
+{"message": "User deactivated and scheduled for deletion."}
+```
+
+---
+
+### Restore the user
+
+```
+POST /users/{user_id}/restore/
+```
+
+**Request body:** empty
+**Response:**
+
+```json
+{"message": "User restored."}
+```
+
+---
+
+### Get a list of all users with roles
+
+```
+GET /users-list/
+```
+
+**Answer:**
+
+```json
+[
+  {
+    "id": 5,
+    "username": "ElonMuskat",
+    "role": "author_journalist"
+  },
+  ...
+]
+```
+
+---
+
+## Advertising
+
+### Get a list of all ads (for the moderator)
+
+```
+GET /advertisements/
+```
+
+**Answer:**
+
+``json
+[
+{
+"id": 1,
+"name": "Advertisement 1",
+"content": "<p>Some HTML</p>",
+"image": "/media/images/img.jpg ",
+"url": "https://example.com ",
+"created_at": "2025-06-10T15:00:00Z"
+},
+...
+]
+``
+
+---
+
+### Create a new ad
+
+```
+POST /advertisements/
+```
+
+**Request body:**
+
+```json
+{
+  "name": "Promo",
+  "content": "<p>The text of the advertisement</p>",
+  "image": null, // file or url if sent via form-data
+  "url": "https://promo.com"
+}
+```
+
+**Answer:**
+
+```json
+{
+  "id": 1,
+  "name": "Promo",
+  "content": "<p>The text of the advertisement</p>",
+  "image": "/media/images/...",
+  "url": "https://promo.com",
+  "created_at": "2025-06-10T15:00:00Z"
+}
+```
+
+---
+
+### Get, edit, delete ads by id
+
+```
+GET /advertisements/{id}/
+PATCH /advertisements/{id}/
+DELETE /advertisements/{id}/
+```
+
+**PATCH — request body:** (example)
+
+``json
+{
+"name": "New name",
+  "content": "<p>Updated text</p>"
+}
+``
+
+**Answer:**
+
+```json
+{
+  "id": 1,
+  "name": "New name",
+  "content": "<p>Updated text</p>",
+  "image": "/media/images/...",
+  "url": "https://promo.com",
+  "created_at": "2025-06-10T15:00:00Z"
+}
+```
+
+---
+
+## Blog — deleting comments
+
+### Delete a comment by a moderator
+
+```
+DELETE /blog/comments/{id}/moderator-delete/
+```
+
+**Answer:**
+
+* 204 No Content
+
+---
+
+### Delete the comment by the owner (student)
+
+```
+DELETE /blog/comments/{id}/delete/
+```
+
+**Answer:**
+
+* 204 No Content
+* 403 Forbidden if someone else's comment
+
+---
+
+**If you haven't described something, please specify it.**
 
 
 ---

@@ -2,16 +2,18 @@ from django.shortcuts import get_object_or_404
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework import generics, status
+from rest_framework import generics, status, viewsets
 from django.db import IntegrityError
+from django.contrib.auth.models import User
 from django.views import View
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, BasePermission
+from django.core.mail import send_mail
 from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.test import APIRequestFactory
-from rest_framework.generics import RetrieveAPIView, ListAPIView
+from rest_framework.generics import RetrieveAPIView, ListAPIView, ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from django.contrib.sessions.middleware import SessionMiddleware
 from dj_rest_auth.views import LoginView
 from reportlab.pdfbase.pdfmetrics import stringWidth
@@ -23,7 +25,8 @@ from .serializers import (RegistrationSerializer, CategorySerializer, CourseSeri
                           ConspectMessageSerializer, SendMessageSerializer, ConspectChatSerializer, ProjectToRMessageSerializer, ProjectToRChatSerializer)
 from blog.models import BlogPost
 from exercises.models import Exercise, LessonAttempt
-
+from rest_framework.decorators import action
+from django.utils import timezone
 from blog.serializers import BlogPostSerializer
 from django.utils.functional import SimpleLazyObject
 from django.contrib.auth import get_user_model
@@ -433,10 +436,11 @@ class BestCourseView(APIView):
         serializer = CourseSerializer(best_course_entry.course, context={'request': request})
         return Response(serializer.data)
 
-class Advertisement(generics.ListAPIView):
-    permission_classes = [AllowAny]
-    queryset = Advertisement.objects.all().order_by("-created_at")
+class AdvertisementView(ListAPIView):
+    pagination_class = None
+    queryset = Advertisement.objects.all().order_by('-created_at')
     serializer_class = AdvertisementSerializer
+    permission_classes = [AllowAny]
 
 
 class AuthorCourseListCreate(APIView):
@@ -1349,6 +1353,7 @@ class ChatHistoryView(View):
         ]
         return JsonResponse(messages, safe=False)
 
+
 @method_decorator(csrf_exempt, name='dispatch')
 class ChatWithAIView(View):
     def post(self, request):
@@ -1373,3 +1378,172 @@ class ChatWithAIView(View):
             return JsonResponse({"text": answer})
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
+
+class AllAppliesView(APIView):
+    def get(self, request):
+        authors = Author.objects.all().select_related('user')
+        data = []
+        for author in authors:
+            data.append({
+                "author_id": author.user.id,
+                "author_username": author.user.username,
+                "author_status": author.author_status,
+                "author_reject_reason": author.author_reject_reason or "",
+                "journalist_status": author.journalist_status,
+                "journalist_reject_reason": author.journalist_reject_reason or "",
+            })
+        return Response(data)
+
+
+class ApproveApplyView(APIView):
+    def post(self, request, user_id, role):
+        author = get_object_or_404(Author, user__id=user_id)
+        if role == "author" and author.author_status == "pending":
+            author.author_status = "approved"
+            author.author_reject_reason = ""
+            author.save()
+            return Response({"message": "Author application approved."})
+        elif role == "journalist" and author.journalist_status == "pending":
+            author.journalist_status = "approved"
+            author.journalist_reject_reason = ""
+            author.save()
+            return Response({"message": "Journalist application approved."})
+        return Response({"error": "No pending application found."}, status=400)
+
+class RejectApplyView(APIView):
+    def post(self, request, user_id, role):
+        author = get_object_or_404(Author, user__id=user_id)
+        reason = request.data.get("reason", "")
+        if role == "author" and author.author_status == "pending":
+            author.author_status = "rejected"
+            author.author_reject_reason = reason
+            author.save()
+            return Response({"message": "Author application rejected."})
+        elif role == "journalist" and author.journalist_status == "pending":
+            author.journalist_status = "rejected"
+            author.journalist_reject_reason = reason
+            author.save()
+            return Response({"message": "Journalist application rejected."})
+        return Response({"error": "No pending application found."}, status=400)
+
+
+class ChangeRoleView(APIView):
+    def post(self, request, user_id):
+        author = get_object_or_404(Author, user__id=user_id)
+        new_role = request.data.get("role")
+        if new_role not in ["student", "author", "journalist", "author_journalist"]:
+            return Response({"error": "Invalid role."}, status=400)
+
+        if new_role == "student":
+            author.author_status = "none"
+            author.is_author = False
+            author.journalist_status = "none"
+            author.is_journalist = False
+        elif new_role == "author":
+            author.author_status = "approved"
+            author.is_author = True
+            author.journalist_status = "none"
+            author.is_journalist = False
+        elif new_role == "journalist":
+            author.author_status = "none"
+            author.is_author = False
+            author.journalist_status = "approved"
+            author.is_journalist = True
+        elif new_role == "author_journalist":
+            author.author_status = "approved"
+            author.is_author = True
+            author.journalist_status = "approved"
+            author.is_journalist = True
+
+        author.author_reject_reason = ""
+        author.journalist_reject_reason = ""
+        author.save()
+
+        try:
+            student = author.user.student
+            if author.is_author and author.is_journalist:
+                student.role = "author_journalist"
+            elif author.is_author:
+                student.role = "author"
+            elif author.is_journalist:
+                student.role = "journalist"
+            else:
+                student.role = "student"
+            student.save()
+        except Exception:
+            pass
+
+        return Response({"message": f"Role changed to {new_role}."})
+
+class DeactivateUserView(APIView):
+    def post(self, request, user_id):
+        user = get_object_or_404(User, id=user_id)
+        try:
+            student = user.student
+        except Student.DoesNotExist:
+            return Response({"error": "No student profile."}, status=404)
+        if student.is_scheduled_for_deletion:
+            return Response({"error": "User is already scheduled for deletion."}, status=400)
+        user.is_active = False
+        user.save()
+        student.deletion_requested_at = timezone.now()
+        student.is_scheduled_for_deletion = True
+        student.save()
+        send_mail(
+            subject="Ваш аккаунт будет удалён через 7 дней",
+            message="Ваш аккаунт деактивирован модератором и будет удалён через 7 дней. Если это ошибка, обратитесь к администрации.",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=True
+        )
+        return Response({"message": "User deactivated and scheduled for deletion."})
+
+class RestoreUserView(APIView):
+    def post(self, request, user_id):
+        user = get_object_or_404(User, id=user_id)
+        try:
+            student = user.student
+        except Student.DoesNotExist:
+            return Response({"error": "No student profile."}, status=404)
+        if not student.is_scheduled_for_deletion:
+            return Response({"error": "User is not scheduled for deletion."}, status=400)
+        user.is_active = True
+        user.save()
+        student.deletion_requested_at = None
+        student.is_scheduled_for_deletion = False
+        student.save()
+        send_mail(
+            subject="Ваш аккаунт восстановлен",
+            message="Ваш аккаунт восстановлен модератором. Теперь вы можете снова пользоваться платформой.",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=True
+        )
+        return Response({"message": "User restored."})
+
+
+class UsersListView(APIView):
+    def get(self, request):
+        users = User.objects.all().select_related('student')
+        data = []
+        for user in users:
+            role = None
+            try:
+                role = user.student.role
+            except Exception:
+                role = "unknown"
+            data.append({
+                "id": user.id,
+                "username": user.username,
+                "role": role
+            })
+        return Response(data)
+
+class AdvertisementListCreateView(ListCreateAPIView):
+    pagination_class = None
+    queryset = Advertisement.objects.all().order_by('id')
+    serializer_class = AdvertisementSerializer
+
+class AdvertisementEditView(RetrieveUpdateDestroyAPIView):
+    queryset = Advertisement.objects.all()
+    serializer_class = AdvertisementSerializer

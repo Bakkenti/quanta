@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import (Author, Student, Course, Module, Lesson, Review, Advertisement, Category, SiteReview, KeepInTouch,
-                     ConspectChat, ConspectMessage, ProjectToRMessage, ProjectToRChat)
+                     ConspectChat, ConspectMessage, ProjectToRMessage, ProjectToRChat, Moderator)
 from dj_rest_auth.serializers import LoginSerializer
 from django.contrib.auth.models import User
 from django_ckeditor_5.fields import CKEditor5Field
@@ -244,3 +244,16 @@ class ProjectToRChatSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectToRChat
         fields = ['id', 'topic', 'created_at']
+
+class ModeratorSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='student.user.username', read_only=True)
+    avatar = serializers.ImageField(source='student.avatar', read_only=True)
+    birthday = serializers.DateField(source='student.birthday', read_only=True)
+    role = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Moderator
+        fields = ['id', 'username', 'avatar', 'birthday', 'role', 'is_active', 'created_at']
+
+    def get_role(self, obj):
+        return "Moderator"

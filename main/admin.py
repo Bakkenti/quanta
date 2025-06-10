@@ -143,13 +143,13 @@ class AuthorAdmin(admin.ModelAdmin):
         if obj.author_status == "approved":
             obj.author_reject_reason = ""
             obj.is_author = True
-        if obj.author_status in ["none", "pending"]:
+        else:
             obj.is_author = False
 
         if obj.journalist_status == "approved":
             obj.journalist_reject_reason = ""
             obj.is_journalist = True
-        if obj.journalist_status in ["none", "pending"]:
+        else:
             obj.is_journalist = False
 
         try:
@@ -167,8 +167,6 @@ class AuthorAdmin(admin.ModelAdmin):
             pass
 
         super().save_model(request, obj, form, change)
-
-
 
 
 class LessonForm(forms.ModelForm):
