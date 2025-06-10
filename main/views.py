@@ -1633,6 +1633,10 @@ class FinalExamStartView(APIView):
     def post(self, request, course_id):
         student = request.user.student
         course = Course.objects.get(id=course_id)
+        course_progress = CourseProgress.objects.filter(student=student, course=course).first()
+        if not course_progress or not course_progress.is_completed:
+            return Response({"error": "You must complete the course before starting the final exam."}, status=400)
+
         exam = course.final_exam
 
         attempts_count = FinalExamAttempt.objects.filter(student=student, exam=exam).count()
