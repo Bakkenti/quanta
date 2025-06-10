@@ -1425,7 +1425,20 @@ class RejectApplyView(APIView):
 
 class ChangeRoleView(APIView):
     def post(self, request, user_id):
-        author = get_object_or_404(Author, user__id=user_id)
+        user = get_object_or_404(User, id=user_id)
+
+        # Нельзя менять роль суперюзеру
+        if user.is_superuser:
+            return Response({"error": "You cannot change role of a superuser."}, status=403)
+
+        # Нельзя менять роль модератору (у кого есть student.moderator_profile)
+        is_moderator = hasattr(user, "student") and hasattr(user.student, "moderator_profile")
+        if is_moderator:
+            return Response({"error": "You cannot change role of a moderator."}, status=403)
+
+        # Получить/создать Author
+        author, _ = Author.objects.get_or_create(user=user)
+
         new_role = request.data.get("role")
         if new_role not in ["student", "author", "journalist", "author_journalist"]:
             return Response({"error": "Invalid role."}, status=400)
@@ -1455,8 +1468,9 @@ class ChangeRoleView(APIView):
         author.journalist_reject_reason = ""
         author.save()
 
+        # Обновить роль у студента, если есть
         try:
-            student = author.user.student
+            student = user.student
             if author.is_author and author.is_journalist:
                 student.role = "author_journalist"
             elif author.is_author:
@@ -1520,9 +1534,12 @@ class RestoreUserView(APIView):
 
 class UsersListView(APIView):
     def get(self, request):
-        users = User.objects.all().select_related('student')
+        users = User.objects.filter(is_superuser=False)
         data = []
         for user in users:
+            is_moderator = hasattr(user, "student") and hasattr(user.student, "moderator_profile")
+            if is_moderator:
+                continue
             role = None
             try:
                 role = user.student.role
@@ -1531,9 +1548,11 @@ class UsersListView(APIView):
             data.append({
                 "id": user.id,
                 "username": user.username,
-                "role": role
+                "role": role,
+                "email": user.email,
             })
         return Response(data)
+
 
 class AdvertisementListCreateView(ListCreateAPIView):
     pagination_class = None
