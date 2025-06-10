@@ -55,29 +55,21 @@ def clean_language_name(s):
 def forward_answers_to_ai(answers: str) -> dict:
     try:
         payload = {"question": answers}
-
-        start_time = time.time()
         response = requests.post(RECOMMENDATION_URL, json=payload, timeout=60)
-        duration = time.time() - start_time
-
         if response.status_code != 200:
-            raise Exception(f"AI service failed with {response.status_code}: {response.text[:300]}")
-
+            return {"error": f"AI service failed with {response.status_code}: {response.text[:300]}"}
         try:
             data = response.json()
         except json.JSONDecodeError:
-            raise Exception("Failed to parse JSON from AI response")
-
+            return {"error": "Failed to parse JSON from AI response"}
         return data
-
     except Timeout:
-        raise Exception("AI request timed out (over 60s)")
-
+        return {"error": "AI request timed out (over 60s)"}
     except RequestException as e:
-        raise Exception(f"AI request error: {str(e)}")
-
+        return {"error": f"AI request error: {str(e)}"}
     except Exception as e:
-        raise Exception(f"AI communication error: {str(e)}")
+        return {"error": f"AI communication error: {str(e)}"}
+
 
 
 def generate_conspect_response(chat, user_message):

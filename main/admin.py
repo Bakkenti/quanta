@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.contrib.auth.models import Group, User
 from django.utils.translation import gettext_lazy as _
 from django.utils.html import format_html
-from .models import Author, Course, Module, Lesson, Student, Review, Advertisement, Category, ProgrammingLanguage, Certificate, ProjectToRChat, ProjectToRMessage
+from .models import Author, Course, Module, Lesson, Student, Review, Advertisement, Category, ProgrammingLanguage, Certificate, ProjectToRChat, ProjectToRMessage, Moderator
 from exercises.models import Exercise, ExerciseOption, ExerciseSolution
 import nested_admin
 from django_ckeditor_5.fields import CKEditor5Field
@@ -168,6 +168,10 @@ class AuthorAdmin(admin.ModelAdmin):
 
         super().save_model(request, obj, form, change)
 
+@admin.register(Moderator)
+class ModeratorAdmin(admin.ModelAdmin):
+    list_display = ['student', 'is_active', 'created_at']
+    search_fields = ['student__user__username']
 
 class LessonForm(forms.ModelForm):
     class Meta:

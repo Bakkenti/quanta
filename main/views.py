@@ -860,20 +860,16 @@ class SurveyRecommendationView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        try:
-            answers = request.data.get("answers", "")
-            if not answers or not isinstance(answers, str):
-                return Response({"error": "Missing or invalid 'answers'"}, status=400)
+        answers = request.data.get("answers", "")
+        if not answers or not isinstance(answers, str):
+            return Response({"error": "Missing or invalid 'answers'"}, status=400)
 
-            response = forward_answers_to_ai(answers)
+        response = forward_answers_to_ai(answers)
+        if "error" in response:
+            return Response({"error": response["error"]}, status=500)
 
-            return Response({
-                "result": response.get("result", ""),
-                "courses": response.get("courses", {})
-            })
+        return Response(response)
 
-        except Exception as e:
-            return Response({"error": str(e)}, status=500)
 
 
 class ConspectChatListView(ListAPIView):

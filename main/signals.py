@@ -3,7 +3,7 @@ from django.db.models.signals import post_save, post_delete
 from django.contrib.auth.models import User
 from django.dispatch import receiver
 from allauth.account.signals import user_logged_in, user_signed_up
-from .models import Course, Review, Student, MostPopularCourse, BestCourse, Author, CourseProgress, LessonProgress, Lesson
+from .models import Course, Review, Student, MostPopularCourse, BestCourse, Author, CourseProgress, LessonProgress, Lesson, Moderator
 from exercises.models import Exercise
 from .utils import update_course_progress
 
@@ -73,3 +73,15 @@ def recalculate_progress_on_exercise_change(sender, instance, **kwargs):
     course = instance.lesson.module.course
     for student in Student.objects.filter(enrolled_courses=course):
         update_course_progress(student.user, course)
+
+@receiver(post_save, sender=Moderator)
+def set_student_role_to_moderator(sender, instance, created, **kwargs):
+    if created and instance.student:
+        instance.student.role = "moderator"
+        instance.student.save()
+
+@receiver(post_delete, sender=Moderator)
+def remove_student_moderator_role(sender, instance, **kwargs):
+    if instance.student and instance.student.role == "moderator":
+        instance.student.role = "student"
+        instance.student.save()

@@ -36,6 +36,7 @@ class Student(models.Model):
         ("author", "Author"),
         ("journalist", "Journalist"),
         ("author_journalist", "Author & Journalist"),
+        ("moderator", "Moderator")
     ]
 
     role = models.CharField(max_length=40, choices=ROLE_CHOICES, default="student")
