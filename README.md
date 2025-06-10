@@ -1245,16 +1245,17 @@ Access it at `http://localhost:8000/`
 ---
 ### **Other**
 
-| Method | Endpoint                   | Description              |
-|--------|----------------------------|--------------------------|
-| `GET`  | `/mostpopularcourse/`      | Show most popular course |
-| `GET`  | `/bestcourse/`             | Show best-rated course   |
-| `GET`  | `/advertisement/`          | Show advertisements      |
-| `GET`  | `/categories/`             | Show categories          |
-| `POST` | `/ckeditor5/image_upload/` | Upload images            |
-| `GET`  | `/keep-in-touch/`          | List all responses       |
-| `POST` | `/keep-in-touch/`          | Leave a response         |
-| `POST` | `/compiler/`               | Test a code              |
+| Method | Endpoint                   | Description                          |
+|--------|----------------------------|--------------------------------------|
+| `GET`  | `/mostpopularcourse/`      | Show most popular course             |
+| `GET`  | `/bestcourse/`             | Show best-rated course               |
+| `GET`  | `/advertisement/`          | Show advertisements                  |
+| `GET`  | `/categories/`             | Show categories                      |
+| `POST` | `/ckeditor5/image_upload/` | Upload images                        |
+| `GET`  | `/keep-in-touch/`          | List all responses                   |
+| `POST` | `/keep-in-touch/`          | Leave a response                     |
+| `POST` | `/compiler/`               | Test a code                          |
+| `GET`  | `/languages/`              | List all languages and their courses |
 
 #### **GET /mostpopularcourse/**
 
@@ -1384,6 +1385,24 @@ Access it at `http://localhost:8000/`
     "stderr": "",
     "exit_code": 0
 }
+```
+
+### GET /programming-languages/
+
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "name": "Python",
+    "courses": 5
+  },
+  {
+    "id": 2,
+    "name": "C++",
+    "courses": 2
+  }
+]
 ```
 ---
 ## 🚀 Deployment
