@@ -983,6 +983,7 @@ class MyCertificatesView(APIView):
             "course": cert.course.title,
             "issued_at": cert.issued_at,
             "pdf_url": request.build_absolute_uri(cert.pdf_file.url),
+            "score": cert.score,
             "verify_url": f"https://quant.up.railway.app/certificate/verify/{cert.token}/"
         } for cert in certs]
         return Response(data)
@@ -997,6 +998,7 @@ class CertificateVerifyView(APIView):
             "course": cert.course.title,
             "issued_at": cert.issued_at,
             "hash_code": cert.hash_code,
+            "score": cert.score,
             "pdf_url": request.build_absolute_uri(cert.pdf_file.url),
         })
 
@@ -1004,36 +1006,33 @@ class CertificateVerifyView(APIView):
 class TriggerCertificateView(APIView):
     def post(self, request, course_id):
         course = get_object_or_404(Course, id=course_id)
-
-        # Получаем прогресс студента по курсу
         course_progress = CourseProgress.objects.get(student=request.user.student, course=course)
 
-        # Проверяем, завершил ли студент курс
+        user = request.user
+        existing = Certificate.objects.filter(user=user, course=course).first()
+        if existing:
+            return Response({
+                "error": "You already have a certificate for this course.",
+                "pdf_url": request.build_absolute_uri(existing.pdf_file.url)
+            }, status=400)
+
         if not course_progress.is_completed:
             return Response({"error": "You need to complete the course first."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Проверяем, что студент прошел все попытки экзамена
         final_exam_attempts = FinalExamAttempt.objects.filter(student=request.user.student, exam__course=course)
-
         if final_exam_attempts.count() == 0:
             return Response({"error": "No exam attempts found for this course."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Получаем максимальную оценку среди всех попыток
         highest_score = max([attempt.score for attempt in final_exam_attempts])
-
-        # Создание сертификата
-        certificate = Certificate.objects.create(
-            student=request.user.student,
-            course=course,
-            score=highest_score  # Добавляем максимальную оценку
-        )
-
-        # Возвращаем ответ с URL для скачивания сертификата
+        cert = generate_certificate(request.user, course, highest_score)
         return Response({
             "message": "Certificate generated successfully.",
-            "pdf_url": request.build_absolute_uri(certificate.pdf_file.url),
-            "highest_score": highest_score  # Возвращаем максимальный балл
+            "pdf_url": request.build_absolute_uri(cert.pdf_file.url),
+            "highest_score": highest_score
         }, status=status.HTTP_201_CREATED)
+
+
+
 
 
 def all_exercises_completed(student, lesson):
@@ -1661,7 +1660,6 @@ class FinalExamSubmitView(APIView):
     def post(self, request, course_id):
         student = request.user.student
         exam = FinalExam.objects.get(course_id=course_id)
-        # ищем текущий незавершённый attempt
         attempt = FinalExamAttempt.objects.filter(student=student, exam=exam, is_completed=False).order_by('-started_at').first()
         if not attempt:
             return Response({"error": "Нет активной попытки экзамена."}, status=400)
@@ -1676,7 +1674,7 @@ class FinalExamSubmitView(APIView):
 
         for question in exam.questions.all():
             q_id = str(question.id)
-            selected_options = data.get(q_id, [])
+            selected_options = [str(x) for x in data.get(q_id, [])]
             real_options = set([str(opt.id) for opt in question.options.filter(is_correct=True)])
             if set(selected_options) == real_options and real_options:
                 correct += 1

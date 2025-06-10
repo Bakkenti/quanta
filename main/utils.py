@@ -21,7 +21,7 @@ pdfmetrics.registerFont(TTFont("LibreBaskerville", os.path.join(FONT_DIR, "Libre
 pdfmetrics.registerFont(TTFont("Caladea", os.path.join(FONT_DIR, "Caladea.ttf")))
 
 
-def generate_certificate(user, course):
+def generate_certificate(user, course, score):
 
     hash_code = hashlib.sha256(f"{user.id}-{course.id}-{user.username}".encode()).hexdigest()
     token = uuid.uuid4()
@@ -66,10 +66,9 @@ def generate_certificate(user, course):
         user=user,
         course=course,
         token=token,
-        hash_code=hash_code
+        hash_code=hash_code,
+        score=score
     )
-
     file_name = f"certificate_{user.username}_{course.id}.pdf"
     cert.pdf_file.save(f"{file_name}", ContentFile(buffer.read()))
-
     return cert

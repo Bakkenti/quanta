@@ -322,8 +322,9 @@ class Certificate(models.Model):
     hash_code = models.CharField(max_length=64, unique=True)
 
     pdf_file = models.FileField(upload_to="certificates/")
+    score = models.FloatField(null=True, blank=True)
 
-    def __str__(self):
+def __str__(self):
         return f"Certificate for {self.user.username} on {self.course.title}"
 
 

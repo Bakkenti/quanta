@@ -1997,6 +1997,67 @@ If there is no active attempt:
 This is enough to work with the final exam and the attempts.
 
 ---
+
+### My certificates
+
+* **GET** `/certificates/`
+* **Response:**
+
+```json
+[
+  {
+    "course": "Python",
+    "issued_at": "2025-06-10T23:17:41.994846Z",
+    "pdf_url": "http://127.0.0.1:8000/media/certificates/certificate_Bakkenti_1.pdf",
+    "score": 95.5,
+    "verify_url": "https://quant.up.railway.app/certificate/verify/2f39bbbd-2b0d-4ea5-901e-c8ea15c6f4c3/"
+  }
+]
+```
+
+---
+
+### Generate certificate
+
+* **POST** `/certificates/generate/<course_id>/`
+* **Response (success):**
+
+```json
+{
+  "message": "Certificate generated successfully.",
+  "pdf_url": "http://127.0.0.1:8000/media/certificates/certificate_Bakkenti_1.pdf",
+  "highest_score": 95.5
+}
+```
+
+* **Response (if already has):**
+
+```json
+{
+  "error": "You already have a certificate for this course.",
+  "pdf_url": "http://127.0.0.1:8000/media/certificates/certificate_Bakkenti_1.pdf"
+}
+```
+
+---
+
+### Verify certificate
+
+* **GET** `/certificate/verify/<uuid:token>/`
+* **Response:**
+
+```json
+{
+  "user": "Bakkenti",
+  "course": "Python",
+  "issued_at": "2025-06-10T23:17:41.994846Z",
+  "hash_code": "5854c085be2bada1bec8dbb0ed25563b803aabeec5d6975e93c00f85a4e4f477",
+  "score": 95.5,
+  "pdf_url": "http://127.0.0.1:8000/media/certificates/certificate_Bakkenti_1.pdf"
+}
+```
+
+---
 ## 🚀 Deployment
 
 ### Gunicorn + Nginx
