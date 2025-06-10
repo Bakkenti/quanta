@@ -105,3 +105,37 @@ def ask_ai(messages):
     if resp.status_code != 200:
         raise Exception("AI service error")
     return resp.json().get("text", "")
+
+def execute_code(language, code):
+    try:
+        resp = requests.post(
+            EXECUTE_URL,
+            json={
+                "language": language,
+                "code": code
+            },
+            timeout=15
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            return data.get("stdout", ""), data.get("stderr", ""), data.get("exitCode", 1)
+        else:
+            return "", f"Execution service error: {resp.status_code}", 1
+    except Exception as e:
+        return "", f"Execution service not available: {str(e)}", 1
+
+def compiler_feature(input_code, feature, language):
+    data = {
+        "input": input_code,
+        "question": feature,
+        "language": language
+    }
+    resp = requests.post(
+        AI_FEEDBACK_URL,
+        json=data,
+        timeout=30
+    )
+    if resp.status_code == 200:
+        return resp.json().get("text", ""), resp.json().get("code", "")
+    else:
+        return f"AI service error: {resp.status_code}", ""

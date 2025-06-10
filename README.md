@@ -1449,6 +1449,53 @@ Access it at `http://localhost:8000/`
 ]
 ```
 
+
+**POST `/compiler/`**
+
+```json
+{
+  "input": "print('hello')",
+  "language": "python"
+}
+```
+
+**Response:**
+
+```json
+{
+  "stdout": "hello\n",
+  "stderr": "",
+  "exit_code": 0
+}
+```
+
+---
+
+### Body Request for AI features:
+
+**POST `/compiler-features/`**
+
+```json
+{
+  "input": "def foo():\n  pass",
+  "feature": "Refactor code",
+  "language": "python"
+}
+```
+
+**Response:**
+
+```json
+{
+  "text": "Код был улучшен...",
+  "code": "def foo():\n    # improved version\n    pass"
+}
+```
+
+---
+
+
+
 ---
 ## 🚀 Deployment
 

@@ -33,7 +33,7 @@ from dj_rest_auth.registration.views import SocialLoginView
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.github.views import GitHubOAuth2Adapter
 from allauth.account.models import EmailAddress, EmailConfirmation, EmailConfirmationHMAC
-from exercises.ai_helper import forward_answers_to_ai, generate_conspect_response, execute_code, ask_ai
+from exercises.ai_helper import forward_answers_to_ai, generate_conspect_response, execute_code, ask_ai, compiler_feature
 from quanta import settings
 from .utils import generate_certificate, update_course_progress
 import urllib.parse
@@ -952,23 +952,28 @@ class CodeExecutionView(APIView):
 
     def post(self, request):
         language = request.data.get("language")
-        code = request.data.get("code")
-
+        code = request.data.get("input") or request.data.get("code")
         if not language or not code:
             return Response({"error": "Missing 'language' or 'code'"}, status=400)
+        stdout, stderr, exit_code = execute_code(language, code)
+        return Response({
+            "stdout": stdout,
+            "stderr": stderr,
+            "exit_code": exit_code
+        })
 
-        try:
-            stdout, stderr, exit_code = execute_code(language, code)
 
-            return Response({
-                "stdout": stdout,
-                "stderr": stderr,
-                "exit_code": exit_code,
-                "text": "Тебе надо оптимизировать вот здесь"
-            })
+class CompilerFeaturesView(APIView):
+    permission_classes = [AllowAny]
 
-        except Exception as e:
-            return Response({"error": str(e)}, status=500)
+    def post(self, request):
+        code = request.data.get("input") or request.data.get("code")
+        feature = request.data.get("feature")
+        language = request.data.get("language")
+        if not code or not feature or not language:
+            return Response({"error": "Missing required fields"}, status=400)
+        text, new_code = compiler_feature(code, feature, language)
+        return Response({"text": text, "code": new_code})
 
 class MyCertificatesView(APIView):
     def get(self, request):
