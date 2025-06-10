@@ -13,7 +13,8 @@ from .views import (
     ConspectChatListView, ConspectHistoryView, ConspectSendMessageView, ConspectStartChatView,
     CodeExecutionView, CompilerFeaturesView, MyCertificatesView, CertificateVerifyView, TriggerCertificateView,
     ProjectToRSendMessageView, ProjectToRChatListView, ProjectToRHistoryView, ConspectPDFView, ProjectToRPDFView, ProgrammingLanguagesListView,
-    ChatWithAIView, ChatHistoryView, AllAppliesView, ApproveApplyView, RejectApplyView, ChangeRoleView, DeactivateUserView, RestoreUserView, AdvertisementListCreateView, AdvertisementEditView
+    ChatWithAIView, ChatHistoryView, AllAppliesView, ApproveApplyView, RejectApplyView, ChangeRoleView, DeactivateUserView, RestoreUserView, AdvertisementListCreateView,
+    AdvertisementEditView, UsersListView
 )
 
 urlpatterns = [
@@ -78,6 +79,8 @@ urlpatterns = [
     path('applies/<int:user_id>/change-role/', ChangeRoleView.as_view(), name='change_role'),
     path('users/<int:user_id>/deactivate/', DeactivateUserView.as_view(), name='deactivate_user'),
     path('users/<int:user_id>/restore/', RestoreUserView.as_view(), name='restore_user'),
-    path('advertisements/', AdvertisementListCreateView.as_view(), name='advertisement_list_create'),  # GET/POST
-    path('advertisements/<int:pk>/', AdvertisementEditView.as_view(), name='advertisement_edit'),  # GET/PATCH/DELETE
+    path('advertisements/', AdvertisementListCreateView.as_view(), name='advertisement_list_create'),
+    path('advertisements/<int:pk>/', AdvertisementEditView.as_view(), name='advertisement_edit'),
+    path('users-list/', UsersListView.as_view(), name='users_list'),
+
 ]
