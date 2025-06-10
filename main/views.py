@@ -1543,6 +1543,8 @@ class UsersListView(APIView):
             role = None
             try:
                 role = user.student.role
+                deactivation_status = user.student.is_scheduled_for_deletion
+                deactivation_date = user.student.deletion_requested_at
             except Exception:
                 role = "unknown"
             data.append({
@@ -1550,6 +1552,8 @@ class UsersListView(APIView):
                 "username": user.username,
                 "role": role,
                 "email": user.email,
+                "deactivation_status": deactivation_status,
+                "deactivation_date": deactivation_date
             })
         return Response(data)
 
