@@ -1491,7 +1491,8 @@ class DeactivateUserView(APIView):
         try:
             student = user.student
         except Student.DoesNotExist:
-            return Response({"error": "No student profile."}, status=404)
+            # Если нет student профиля, просто создаём его на лету
+            student = Student.objects.create(user=user)
         if student.is_scheduled_for_deletion:
             return Response({"error": "User is already scheduled for deletion."}, status=400)
         user.is_active = False
@@ -1506,7 +1507,8 @@ class DeactivateUserView(APIView):
             recipient_list=[user.email],
             fail_silently=True
         )
-        return Response({"message": "User deactivated and scheduled for deletion."})
+        return Response({"message": "User deactivated and scheduled for deletion."}, status=200)
+
 
 class RestoreUserView(APIView):
     def post(self, request, user_id):
