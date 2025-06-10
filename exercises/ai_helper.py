@@ -18,7 +18,8 @@ def execute_code(language, code):
             EXECUTE_URL,
             json={
                 "language": language,
-                "code": code
+                "code": code,
+                "feature": "analyze"
             },
             timeout=15
         )

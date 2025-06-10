@@ -4,6 +4,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import generics, status
 from django.db import IntegrityError
+from django.views import View
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, BasePermission
@@ -962,7 +963,8 @@ class CodeExecutionView(APIView):
             return Response({
                 "stdout": stdout,
                 "stderr": stderr,
-                "exit_code": exit_code
+                "exit_code": exit_code,
+                "text": "Тебе надо оптимизировать вот здесь"
             })
 
         except Exception as e:
@@ -1318,3 +1320,17 @@ class ProjectToRPDFView(APIView):
         delete_later(filepath, 300)
 
         return Response({"url": file_url})
+
+class ProgrammingLanguagesListView(View):
+
+    def get(self, request):
+        languages = ProgrammingLanguage.objects.all().order_by('id')
+        data = []
+        for lang in languages:
+            courses_count = Course.objects.filter(language=lang).count()
+            data.append({
+                "id": lang.id,
+                "name": lang.name,
+                "courses": courses_count,
+            })
+        return JsonResponse(data, safe=False)
