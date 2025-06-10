@@ -12,7 +12,8 @@ from .views import (
     ApplyAuthor, ApplyJournalist, AppliesStatus, WithdrawApplication, ConfirmEmail, SurveyRecommendationView,
     ConspectChatListView, ConspectHistoryView, ConspectSendMessageView, ConspectStartChatView,
     CodeExecutionView, MyCertificatesView, CertificateVerifyView, TriggerCertificateView,
-    ProjectToRSendMessageView, ProjectToRChatListView, ProjectToRHistoryView, ConspectPDFView, ProjectToRPDFView, ProgrammingLanguagesListView
+    ProjectToRSendMessageView, ProjectToRChatListView, ProjectToRHistoryView, ConspectPDFView, ProjectToRPDFView, ProgrammingLanguagesListView,
+    ChatWithAIView, ChatHistoryView
 )
 
 urlpatterns = [
@@ -68,4 +69,6 @@ urlpatterns = [
     path('conspect/<int:chat_id>/pdf/', ConspectPDFView.as_view()),
     path('project_tor/<int:chat_id>/pdf/', ProjectToRPDFView.as_view(), name='project_tor-pdf'),
     path('languages/', ProgrammingLanguagesListView.as_view()),
+    path('ai-dialog/', ChatWithAIView.as_view()),
+    path('ai-history/', ChatHistoryView.as_view()),
 ]

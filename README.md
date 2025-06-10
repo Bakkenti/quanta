@@ -1326,6 +1326,7 @@ Access it at `http://localhost:8000/`
 }
 ```
 ---
+# Site reviews
 | Method | Endpoint              | Description                 |
 |--------|-----------------------|-----------------------------|
 | `GET`  | `/blog/site-reviews/` | List all reviews on website |
@@ -1404,6 +1405,50 @@ Access it at `http://localhost:8000/`
   }
 ]
 ```
+---
+# Chatting with AI support
+| Method | Endpoint        | Description           |
+|--------|-----------------|-----------------------|
+| `GET`  | `/ai-history/`  | List history of chat  |
+| `POST` | `/ai-dialog/`   | Send message  
+
+### POST /ai-dialog/
+**Request:**
+```json
+{
+  "message": "Hello, how are you?"
+}
+````
+
+**Response:**
+
+```json
+{
+  "text": "Hi, I am good. What about you?"
+}
+```
+
+---
+
+### GET /ai-history/
+
+**Response:**
+
+```json
+[
+  {
+    "role": "user",
+    "content": "What is decorator in Python?",
+    "timestamp": "2025-06-10T05:45:22.738Z"
+  },
+  {
+    "role": "assistant",
+    "content": "A decorator in Python is a function that changes the behavior of another function without changing its code.",
+    "timestamp": "2025-06-10T05:45:23.159Z"
+  }
+]
+```
+
 ---
 ## 🚀 Deployment
 

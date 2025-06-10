@@ -17,7 +17,7 @@ from dj_rest_auth.views import LoginView
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from .models import (Course, Lesson, Student, Author, Review, Module, MostPopularCourse, BestCourse, Advertisement, Category, SiteReview,
                      KeepInTouch, ProgrammingLanguage, ConspectChat, ConspectMessage, Certificate, CourseProgress, LessonProgress,
-                     ProjectToRChat, ProjectToRMessage)
+                     ProjectToRChat, ProjectToRMessage, ChatMessage, Chat)
 from .serializers import (RegistrationSerializer, CategorySerializer, CourseSerializer, LessonSerializer, ModuleSerializer, ReviewSerializer,
                           ProfileSerializer, AdvertisementSerializer, UserSerializer, SiteReviewSerializer, KeepInTouchSerializer,
                           ConspectMessageSerializer, SendMessageSerializer, ConspectChatSerializer, ProjectToRMessageSerializer, ProjectToRChatSerializer)
@@ -33,7 +33,7 @@ from dj_rest_auth.registration.views import SocialLoginView
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.github.views import GitHubOAuth2Adapter
 from allauth.account.models import EmailAddress, EmailConfirmation, EmailConfirmationHMAC
-from exercises.ai_helper import forward_answers_to_ai, generate_conspect_response, execute_code
+from exercises.ai_helper import forward_answers_to_ai, generate_conspect_response, execute_code, ask_ai
 from quanta import settings
 from .utils import generate_certificate, update_course_progress
 import urllib.parse
@@ -1334,3 +1334,37 @@ class ProgrammingLanguagesListView(View):
                 "courses": courses_count,
             })
         return JsonResponse(data, safe=False)
+
+class ChatHistoryView(View):
+    def get(self, request):
+        chat, _ = Chat.objects.get_or_create(id=1)
+        messages = [
+            {"role": msg.role, "content": msg.content, "timestamp": msg.timestamp}
+            for msg in chat.messages.order_by('timestamp')
+        ]
+        return JsonResponse(messages, safe=False)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ChatWithAIView(View):
+    def post(self, request):
+        try:
+            body = json.loads(request.body)
+            user_message = body.get("message", "")
+            if not user_message:
+                return JsonResponse({"error": "No message provided"}, status=400)
+
+            chat, _ = Chat.objects.get_or_create(id=1)
+            messages = [
+                {"role": msg.role, "content": msg.content}
+                for msg in chat.messages.order_by('timestamp')
+            ]
+            messages.append({"role": "user", "content": user_message})
+
+            answer = ask_ai(messages)
+
+            ChatMessage.objects.create(chat=chat, role="user", content=user_message)
+            ChatMessage.objects.create(chat=chat, role="assistant", content=answer)
+
+            return JsonResponse({"text": answer})
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)

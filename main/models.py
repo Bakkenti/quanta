@@ -354,3 +354,12 @@ class ProjectToRMessage(models.Model):
     role = models.CharField(max_length=10, choices=[('user', 'user'), ('assistant', 'assistant')])
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
+
+class Chat(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class ChatMessage(models.Model):
+    chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name='messages')
+    role = models.CharField(max_length=10)
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)

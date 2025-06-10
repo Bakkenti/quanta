@@ -98,3 +98,10 @@ def generate_conspect_response(chat, user_message):
         raise Exception(f"AI error: {response.text}")
 
     return response.json()["text"]
+
+def ask_ai(messages):
+    payload = {"messages": messages}
+    resp = requests.post(ASK_AI_URL, json=payload, timeout=15)
+    if resp.status_code != 200:
+        raise Exception("AI service error")
+    return resp.json().get("text", "")
