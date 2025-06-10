@@ -1748,6 +1748,60 @@ DELETE /blog/comments/{id}/delete/
 ```
 ---
 
+### Endpoint for getting lesson progress:
+
+**GET**: `/courses/{course_id}/modules/{module_id}/lessons/{lesson_id}/progress/`
+
+**Response**:
+
+```json
+{
+  "lesson_id": 1,
+  "student_id": 5,
+  "is_viewed": true,
+  "is_completed": false,
+  "completed_at": null,
+  "progress_percent": 60.0
+}
+```
+
+**Fields in the response**:
+
+* `lesson_id': The lesson ID.
+* `student_id': The student's ID.
+* `is_viewed`: The status of whether the student has viewed the lesson.
+* `is_completed`: The status of whether the student has completed the lesson.
+* `completed_at': Lesson completion time (if completed).
+* `progress_percent`: Student's percentage of lesson completion (from 0 to 100%).
+
+### Endpoint for getting course progress:
+
+**GET**: `/courses/{course_id}/progress/`
+
+**Response**:
+
+```json
+{
+  "course_id": 9,
+  "student_id": 5,
+  "progress_percent": 85.0,
+  "is_completed": false,
+  "completed_at": null
+}
+```
+
+**Fields in the response**:
+
+* `course_id': The course ID.
+* `student_id': The student's ID.
+* `progress_percent': The percentage of course completion by the student (from 0 to 100%).
+* `is_completed': The status of whether the student has completed the course.
+* `completed_at': Course completion time (if completed).
+
+These two endpoints will allow you to track the progress of both individual lessons and the entire course.
+
+---
+
 ###1. Get the details of the final exam
 
 **GET /courses/{course\_id}/final-exam/**

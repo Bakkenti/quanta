@@ -1693,3 +1693,60 @@ class FinalExamAttemptsListView(ListAPIView):
         student = self.request.user.student
         exam_id = self.kwargs['exam_id']
         return FinalExamAttempt.objects.filter(student=student, exam_id=exam_id).order_by('-started_at')
+
+
+class LessonProgressView(APIView):
+    def get(self, request, course_id, module_id, lesson_id):
+        student = request.user.student
+        lesson = get_object_or_404(Lesson, module__course__id=course_id, module__module_id=module_id,
+                                   lesson_id=lesson_id)
+        lesson_progress = LessonProgress.objects.filter(student=student, lesson=lesson).first()
+
+        if lesson_progress is None:
+            return Response({"error": "Progress not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        progress_data = {
+            "lesson_id": lesson.id,
+            "lesson_name": lesson.name,
+            "is_viewed": lesson_progress.is_viewed,
+            "is_completed": lesson_progress.is_completed,
+            "progress_percent": lesson_progress.progress_percent,
+            "completed_at": lesson_progress.completed_at
+        }
+
+        return Response(progress_data, status=status.HTTP_200_OK)
+
+
+class CourseProgressView(APIView):
+    def get(self, request, course_id):
+        student = request.user.student
+        course = get_object_or_404(Course, id=course_id)
+
+        # Получаем прогресс по каждому уроку
+        lessons = Lesson.objects.filter(module__course=course)
+        total_lessons = lessons.count()
+        completed_lessons = 0
+        progress_sum = 0
+
+        for lesson in lessons:
+            lesson_progress = LessonProgress.objects.filter(student=student, lesson=lesson).first()
+            if lesson_progress:
+                progress_sum += lesson_progress.progress_percent
+                if lesson_progress.is_completed:
+                    completed_lessons += 1
+
+        if total_lessons > 0:
+            course_progress_percent = (progress_sum / total_lessons)
+        else:
+            course_progress_percent = 0.0
+
+        course_progress_data = {
+            "course_id": course.id,
+            "course_name": course.title,
+            "total_lessons": total_lessons,
+            "completed_lessons": completed_lessons,
+            "progress_percent": round(course_progress_percent, 2),
+            "is_completed": course_progress_percent == 100.0
+        }
+
+        return Response(course_progress_data, status=status.HTTP_200_OK)

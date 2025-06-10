@@ -17,7 +17,7 @@ from .views import (
     AdvertisementEditView, UsersListView, FinalExamDetailView,
     FinalExamStartView,
     FinalExamSubmitView,
-    FinalExamAttemptsListView, FinalExamCreateView
+    FinalExamAttemptsListView, FinalExamCreateView, LessonProgressView, CourseProgressView
 )
 
 urlpatterns = [
@@ -95,6 +95,11 @@ urlpatterns = [
     path('courses/<int:course_id>/final-exam/attempts/', FinalExamAttemptsListView.as_view(),
          name='final_exam_attempts'),  # GET
 
-    path('courses/<int:course_id>/final-exam/submit-answer/', FinalExamSubmitView.as_view(), name='final_exam_submit')
+    path('courses/<int:course_id>/final-exam/submit-answer/', FinalExamSubmitView.as_view(), name='final_exam_submit'),
+    path('courses/<int:course_id>/modules/<int:module_id>/lessons/<int:lesson_id>/progress/',
+         LessonProgressView.as_view(), name='lesson_progress'),
+
+    # Прогресс курса
+    path('courses/<int:course_id>/progress/', CourseProgressView.as_view(), name='course_progress'),
 
 ]
