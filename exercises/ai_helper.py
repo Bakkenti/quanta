@@ -54,8 +54,11 @@ def clean_language_name(s):
 
 def forward_answers_to_ai(answers: str) -> dict:
     payload = {"question": answers}
+    print("Sending payload to AI:", payload)
     try:
         response = requests.post(RECOMMENDATION_URL, json=payload, timeout=60)
+        print("AI response status:", response.status_code)
+        print("AI response text:", response.text)
         response.raise_for_status()
         try:
             data = response.json()
@@ -66,6 +69,7 @@ def forward_answers_to_ai(answers: str) -> dict:
     except requests.exceptions.RequestException as e:
         print(f"[AI ERROR] External service error: {e}")
         return {"error": "External service unavailable"}
+
 
 
 

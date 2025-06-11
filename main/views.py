@@ -365,12 +365,17 @@ class LessonDetail(APIView):
         module = get_object_or_404(Module, course__id=course_id, module_id=module_id)
         lesson = get_object_or_404(Lesson, module=module, lesson_id=lesson_id)
 
-        student = request.user.student
-        lp, _ = LessonProgress.objects.get_or_create(student=student, lesson=lesson)
-        if not lp.is_viewed:
-            lp.is_viewed = True
-            lp.save()
-        recalc_lesson_progress(student, lesson)
+        if request.user.is_authenticated:
+            try:
+                student = request.user.student
+                if module.course in student.enrolled_courses.all():
+                    lp, _ = LessonProgress.objects.get_or_create(student=student, lesson=lesson)
+                    if not lp.is_viewed:
+                        lp.is_viewed = True
+                        lp.save()
+                    recalc_lesson_progress(student, lesson)
+            except Exception:
+                pass
 
         lesson_data = {
             "id": lesson.lesson_id,
