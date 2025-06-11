@@ -53,22 +53,19 @@ def clean_language_name(s):
     return re.sub(r'[^a-zA-Z]', '', s).strip().capitalize()
 
 def forward_answers_to_ai(answers: str) -> dict:
+    payload = {"question": answers}
     try:
-        payload = {"question": answers}
         response = requests.post(RECOMMENDATION_URL, json=payload, timeout=60)
-        if response.status_code != 200:
-            return {"error": f"AI service failed with {response.status_code}: {response.text[:300]}"}
+        response.raise_for_status()
         try:
             data = response.json()
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
+            print(f"[AI ERROR] Failed to parse JSON: {e}")
             return {"error": "Failed to parse JSON from AI response"}
         return data
-    except Timeout:
-        return {"error": "AI request timed out (over 60s)"}
-    except RequestException as e:
-        return {"error": f"AI request error: {str(e)}"}
-    except Exception as e:
-        return {"error": f"AI communication error: {str(e)}"}
+    except requests.exceptions.RequestException as e:
+        print(f"[AI ERROR] External service error: {e}")
+        return {"error": "External service unavailable"}
 
 
 
