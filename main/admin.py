@@ -339,3 +339,6 @@ class ProjectToRChatAdmin(admin.ModelAdmin):
 @admin.register(ProjectToRMessage)
 class ProjectToRMessageAdmin(admin.ModelAdmin):
     list_display = ['chat', 'role', 'timestamp']
+
+
+

@@ -50,6 +50,8 @@ class LessonAttempt(models.Model):
     finished_at = models.DateTimeField(null=True, blank=True)
     answers = models.JSONField()
     score = models.IntegerField(default=0)
+    hints_left = models.PositiveIntegerField(default=3)
+
     def __str__(self):
         return f"LessonAttempt by {self.student} on {self.lesson}"
 

@@ -42,13 +42,22 @@ class ExerciseSolutionAdmin(admin.ModelAdmin):
     list_display = ('id', 'exercise', 'expected_output')
     search_fields = ('exercise__title',)
 
+@admin.action(description="Сбросить лимит подсказок")
+def reset_hints(modeladmin, request, queryset):
+     updated = queryset.update(hints_left=3)
+     admin_message = f"Сброшено подсказок для {updated} попыток."
+     modeladmin.message_user(request, admin_message, messages.SUCCESS)
+
 @admin.register(LessonAttempt)
 class LessonAttemptAdmin(admin.ModelAdmin):
-    list_display = ('id', 'student', 'lesson', 'score', 'created_at', 'get_answers_preview')
+    list_display = ('id', 'student', 'lesson', 'score', 'created_at', 'get_answers_preview', 'hints_left')
     list_filter = ('lesson', 'student')
     search_fields = ('student__user__username', 'lesson__name')
     readonly_fields = ('student', 'lesson', 'created_at', 'score', 'formatted_answers')
+    actions = [reset_hints]
     exclude = ('finished_at',)
+
+
 
     def get_answers_preview(self, obj):
         return str(obj.answers)[:150]
